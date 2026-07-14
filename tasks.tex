@@ -1,0 +1,956 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=0.82in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[colorlinks=true,linkcolor=nsblue,urlcolor=nsteal,citecolor=nsblue]{hyperref}
+
+\definecolor{nsblue}{HTML}{1F6FB2}
+\definecolor{nsteal}{HTML}{187F79}
+\definecolor{nsgreen}{HTML}{247A4B}
+\definecolor{nsamber}{HTML}{B57500}
+\definecolor{nsred}{HTML}{B8322A}
+\definecolor{nsgrey}{HTML}{343A40}
+\definecolor{nslight}{HTML}{EEF5F7}
+\definecolor{codebg}{HTML}{F6F8FA}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlength{\headheight}{14pt}
+\setcounter{tocdepth}{2}
+\setlist[itemize]{leftmargin=1.45em,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=1.65em,itemsep=3pt,topsep=3pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\titleformat{\section}{\sffamily\Large\bfseries\color{nsblue}}{\thesection}{0.55em}{}
+  [{\color{nsblue!25}\titlerule[0.8pt]}]
+\titleformat{\subsection}{\sffamily\large\bfseries\color{nsgrey}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\sffamily\normalsize\bfseries\color{nsteal}}{}{0pt}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{nsgrey}NeuroShield Software-First MVP Task Plan}
+\fancyhead[R]{\small\sffamily\color{nsgrey}\thepage}
+\renewcommand{\headrule}{\vskip1pt{\color{nsblue!40}\hrule height 0.7pt}}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  upquote=true,
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  aboveskip=5pt,
+  belowskip=5pt
+}
+
+\newtcolorbox{taskbox}[2][]{
+  breakable,
+  enhanced,
+  colback=white,
+  colframe=nsblue,
+  colbacktitle=nsblue,
+  coltitle=white,
+  fonttitle=\sffamily\bfseries,
+  title={#2},
+  boxrule=0.8pt,
+  arc=2pt,
+  left=8pt,right=8pt,top=7pt,bottom=7pt,
+  #1
+}
+
+\newtcolorbox{donebox}{
+  breakable,
+  colback=nsgreen!6,
+  colframe=nsgreen,
+  title={Definition of done},
+  fonttitle=\sffamily\bfseries,
+  boxrule=0.9pt,
+  arc=2pt
+}
+
+\newtcolorbox{warningbox}[1]{
+  breakable,
+  colback=nsamber!8,
+  colframe=nsamber,
+  colbacktitle=nsamber!8,
+  coltitle=nsamber!65!black,
+  fonttitle=\sffamily\bfseries,
+  title={#1},
+  boxrule=0.9pt,
+  arc=2pt
+}
+
+\newtcolorbox{plainbox}[1]{
+  breakable,
+  colback=nslight,
+  colframe=nsblue!55,
+  title={#1},
+  fonttitle=\sffamily\bfseries,
+  boxrule=0.8pt,
+  arc=2pt
+}
+
+\newcommand{\code}{\path}
+\newcommand{\green}{\textbf{\textcolor{nsgreen}{GREEN}}}
+\newcommand{\amberstatus}{\textbf{\textcolor{nsamber}{AMBER}}}
+\newcommand{\redstatus}{\textbf{\textcolor{nsred}{RED}}}
+
+\begin{document}
+\thispagestyle{empty}
+
+\begin{tcolorbox}[colback=nsblue,colframe=nsblue,arc=3pt,boxrule=0pt,
+  left=16pt,right=16pt,top=16pt,bottom=16pt]
+{\sffamily\color{white}\fontsize{27}{31}\selectfont\bfseries NeuroShield}\par
+\vspace{4pt}
+{\sffamily\color{white}\LARGE Software-First MVP Task Plan}\par
+\vspace{8pt}
+{\sffamily\color{white!90}\large Self-contained tasks for building the MVP with public datasets and synthetic live streams before hardware}
+\end{tcolorbox}
+
+\vspace{8pt}
+\textbf{Project file context:} \code{manika/initial_research.tex}\hfill
+\textbf{Working assumption:} build software first, connect hardware later
+
+\begin{plainbox}{MVP strategy}
+The MVP is a software-first research prototype. First, build a complete laptop app that works with
+public datasets and a generated/replayed sensor stream. Only after the replay demo is stable should
+hardware be connected. When hardware arrives, it must replace the stream source only; the feature
+pipeline, model, backend, dashboard, logging, explanations, and tests should already work.
+\end{plainbox}
+
+\begin{warningbox}{Honesty boundary}
+NeuroShield is not a clinical device. The MVP detects patterns associated with public stress-proxy
+datasets and local simulated streams. It must not claim to predict panic attacks, diagnose anxiety,
+diagnose heat illness, or detect burnout. Public datasets used here contain proxy labels such as
+baseline, lab stress, task stress, activity, and self-report.
+\end{warningbox}
+
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{MVP Outcome}
+
+\subsection{What must exist at the end of the software-first MVP}
+
+\begin{longtable}{P{0.25\linewidth}P{0.66\linewidth}}
+\toprule
+\textbf{Area} & \textbf{Required MVP behavior} \\
+\midrule
+Dataset ingestion & WESAD loads correctly first. At least one external dataset loader or documented skip decision exists. \\
+Feature pipeline & One versioned feature extractor converts windows into heart, EDA, temperature, and motion features. \\
+Model & M1 rest-vs-stress-proxy model trains on WESAD with subject-wise evaluation and saves a versioned artifact. \\
+Synthetic/replay source & A software stream emits the same raw event schema that later hardware will emit. \\
+Personalization & A baseline profile is computed from quiet windows and used to z-score features. \\
+Live runtime & Replay/synthetic stream flows through features, baseline, motion gate, model, status, and explanations. \\
+Dashboard & Local dashboard shows connection, quality, \green/\amberstatus/\redstatus, motion pause, reasons, and history. \\
+Tests and evidence & Dataset smoke tests, feature tests, model metrics, backend tests, dashboard build, and a recorded replay demo exist. \\
+\bottomrule
+\end{longtable}
+
+\subsection{What is deliberately postponed}
+
+Hardware wiring, firmware, LiPo power, Bluetooth phone app, on-device TinyML, permanent enclosure,
+clinical claims, panic prediction, real burnout prediction, and volunteer stress experiments are
+postponed until the software replay gate passes.
+
+\subsection{Directory structure to build}
+
+\begin{lstlisting}
+neuroshield/
+  README.md
+  pyproject.toml
+  uv.lock
+  package.json
+  data/
+    raw/                 # not committed
+    external/            # downloaded public datasets; not committed
+    interim/             # converted parquet/npz; not committed
+    fixtures/            # tiny synthetic fixtures; committed
+  docs/
+    contracts.md
+    datasets.md
+    model_card_m1.md
+    software_acceptance.md
+  src/neuroshield/
+    data/
+    features/
+    models/
+    runtime/
+    api/
+  app/                   # dashboard
+  tests/
+  artifacts/
+    metrics/
+    plots/
+    models/
+    demo/
+\end{lstlisting}
+
+% ============================================================================
+\section{Dataset Download and Contents}
+
+Store raw datasets outside Git. The recommended root is \code{data/external/}. Create one folder per
+dataset and keep a \code{SOURCE.txt} file inside each folder with the URL, download date, license or
+terms note, file names, sizes, and checksum if available.
+
+\begin{warningbox}{Do not download everything on day one if bandwidth is limited}
+For the MVP, WESAD is mandatory. PPG-DaLiA is strongly recommended for motion handling. Stress-Predict
+or Nurse Stress is useful for external validation. SWELL-KW and Fitbit are optional concept modules
+and can be deferred.
+\end{warningbox}
+
+\subsection{Dataset priority map}
+
+\begin{longtable}{P{0.17\linewidth}P{0.16\linewidth}P{0.16\linewidth}P{0.42\linewidth}}
+\toprule
+\textbf{Dataset} & \textbf{Priority} & \textbf{Used for} & \textbf{What to expect} \\
+\midrule
+WESAD & Must have & M1 stress-proxy model & 15 subjects; wrist Empatica E4 BVP, EDA, temperature, ACC; chest signals; baseline/stress/amusement labels. \\
+PPG-DaLiA & Strongly recommended & Motion gate and pulse-quality tests & 15 subjects; wrist PPG and accelerometer during daily activities; chest ECG ground truth for heart rate. Large download. \\
+Stress-Predict & Recommended & External sanity check & 35 volunteers; Empatica E4 raw folders and processed CSV; baseline/stress labels across Stroop, interview, hyperventilation. \\
+Nurse Stress & Optional validation & Naturalistic stress test & 15 nurses; roughly one week of E4 data; sparse self-report stress surveys; messy real-world data and empty files may appear. \\
+SWELL-KW & Optional M2 & Cognitive-load concept & Office-task stress dataset; request/download process may take time; use HRV/EDA only if access is granted. \\
+Fitbit Fitness Tracker & Optional trends & BurnoutWatch-style trend demo & Kaggle dataset with activity, heart-rate, and sleep CSVs; no stress or burnout labels. \\
+\bottomrule
+\end{longtable}
+
+\subsection{WESAD: primary training dataset}
+
+\textbf{Official source:}
+\url{https://archive.ics.uci.edu/dataset/465/wesad+wearable+stress+and+affect+detection}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item 15 subjects in a lab stress-affect protocol.
+\item Wrist Empatica E4 channels: BVP at 64 Hz, EDA at 4 Hz, body temperature at 4 Hz, and 3-axis acceleration at 32 Hz.
+\item Chest RespiBAN channels: ECG, EDA, EMG, respiration, temperature, and acceleration at 700 Hz.
+\item Labels for baseline/neutral, stress, amusement, and other protocol periods.
+\item Subject pickle files and a README from the linked original dataset package.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Open the UCI WESAD page above.
+\item Click \textbf{Dataset Home Page}. UCI links to the original University of Siegen WESAD page.
+\item Read and follow the dataset acknowledgment/license instructions on the original page.
+\item Download the WESAD zip/package from the original dataset page.
+\item Save the archive as \code{data/external/wesad/WESAD.zip} or similar.
+\item Extract so the expected layout contains subject folders such as \code{S2}, \code{S3}, etc.
+\item Create \code{data/external/wesad/SOURCE.txt} with source URL, date, and citation.
+\end{enumerate}
+
+\textbf{Command-line option after manual download.}
+\begin{lstlisting}
+mkdir data\external\wesad
+# Move the downloaded WESAD archive into data\external\wesad
+# Then extract with Windows Explorer, 7-Zip, or:
+tar -xf data\external\wesad\WESAD.zip -C data\external\wesad
+\end{lstlisting}
+
+\textbf{Use in MVP.}
+Use only wrist E4 signals first because they match the future glove signals most closely. Train M1 on
+baseline versus stress. Ignore amusement for the first binary classifier, or keep it only for a later
+three-class experiment.
+
+\subsection{PPG-DaLiA: motion and pulse-quality dataset}
+
+\textbf{Official source:}
+\url{https://archive.ics.uci.edu/dataset/495/ppg+dalia}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item 15 subjects performing daily-life activities.
+\item Wrist Empatica E4 BVP/PPG, EDA, temperature, and acceleration.
+\item Chest RespiBAN ECG, respiration, and acceleration.
+\item ECG-derived ground truth heart rate for testing pulse extraction under motion.
+\item UCI lists \code{data.zip} at about 2.7 GB plus a README PDF.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Open the UCI PPG-DaLiA page above.
+\item Click \textbf{Download} for \code{data.zip}; also download \code{readme.pdf}.
+\item Save them in \code{data/external/ppg_dalia/}.
+\item Extract \code{data.zip}; verify subject folders/files are visible.
+\item Record source URL, date, file size, and license note in \code{data/external/ppg_dalia/SOURCE.txt}.
+\end{enumerate}
+
+\textbf{Command-line option.}
+\begin{lstlisting}
+mkdir data\external\ppg_dalia
+# Browser download is safest because the file is large.
+# After download:
+tar -xf data\external\ppg_dalia\data.zip -C data\external\ppg_dalia
+\end{lstlisting}
+
+\textbf{Use in MVP.}
+Do not train the stress classifier on PPG-DaLiA. Use it to decide when the live app should abstain
+with \code{motion_paused} or \code{poor_signal}, and to test whether pulse-derived heart-rate features
+stay reasonable during movement.
+
+\subsection{Stress-Predict Dataset: external lab validation}
+
+\textbf{Official source:}
+\url{https://github.com/italha-d/Stress-Predict-Dataset}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item 35 healthy volunteers.
+\item Stress tasks: Stroop colour-word test, interview session, and hyperventilation, with baseline/relaxation periods.
+\item Raw Empatica E4 folders per participant containing \code{ACC.csv}, \code{BVP.csv}, \code{EDA.csv}, \code{HR.csv}, \code{IBI.csv}, \code{TEMP.csv}, \code{info.txt}, and task tags.
+\item Processed files including a combined HR/respiration binary-label CSV, questionnaire scores, and task time logs.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Open the GitHub repository above.
+\item Click \textbf{Code} then \textbf{Download ZIP}, or use Git if installed.
+\item Save/extract into \code{data/external/stress_predict/}.
+\item Confirm both \code{Raw_data/} and \code{Processed_data/} exist.
+\item Record repository URL, commit hash if using Git, download date, and license in \code{SOURCE.txt}.
+\end{enumerate}
+
+\textbf{Command-line option.}
+\begin{lstlisting}
+git clone https://github.com/italha-d/Stress-Predict-Dataset.git data\external\stress_predict
+cd data\external\stress_predict
+git rev-parse HEAD
+\end{lstlisting}
+
+\textbf{Use in MVP.}
+Use this after WESAD training to see whether the model behaves sensibly on another lab stress
+protocol. It is also useful for a software-only stream fixture because the raw E4 CSVs are easy to
+replay.
+
+\subsection{Nurse Stress Dataset: naturalistic validation}
+
+\textbf{Official source:}
+\url{https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item Data from 15 female nurses working hospital shifts.
+\item About 1,250 hours collected in two sessions during 2020.
+\item Empatica E4 signal files: \code{EDA.csv}, \code{HR.csv}, \code{TEMP.csv}, \code{IBI.csv}, \code{BVP.csv}, and \code{ACC.csv}.
+\item \code{SurveyResults.xlsx} with reported stress level and context columns.
+\item Some raw CSV files may be empty because of device capture failures; loaders must handle this.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Open the Dryad page above.
+\item Download \code{Stress_dataset.zip} and \code{SurveyResults.xlsx}, or click \textbf{Download full dataset}.
+\item Save both under \code{data/external/nurse_stress/}.
+\item Extract the zip; confirm participant folders and raw signal CSVs are present.
+\item Record DOI, version date, file sizes, and citation in \code{SOURCE.txt}.
+\end{enumerate}
+
+\textbf{Use in MVP.}
+Use only after the WESAD pipeline is stable. Expect noisy, sparse labels and missing files. Treat it
+as a robustness check, not as the primary proof of accuracy.
+
+\subsection{SWELL-KW: optional cognitive-load module}
+
+\textbf{Project page:}
+\url{http://cs.ru.nl/~skoldijk/SWELL-KW/Dataset.html}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item Knowledge-worker office tasks with stressors such as time pressure and email interruption.
+\item Physiological signals relevant to HRV and EDA, plus richer modalities that the glove will not reproduce.
+\item Questionnaire/task-load information for stress/cognitive-load conditions.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Open the SWELL-KW dataset page.
+\item Follow the page's access/request instructions. This dataset may require a request rather than immediate direct download.
+\item If access is granted, save files under \code{data/external/swell_kw/}.
+\item Record the access date, granted terms, file names, and citation in \code{SOURCE.txt}.
+\end{enumerate}
+
+\textbf{Use in MVP.}
+Optional. Use it only for M2 FocusGuard/cognitive-load experiments. The main MVP does not depend on it.
+
+\subsection{Fitbit Fitness Tracker Data: optional trends dataset}
+
+\textbf{Source:}
+\url{https://www.kaggle.com/datasets/arashnic/fitbit}
+
+\textbf{What it contains.}
+\begin{itemize}
+\item Consumer-style activity, heart-rate, and sleep CSVs.
+\item Longitudinal daily/minute-level behavior useful for dashboard trend logic.
+\item No labelled stress, burnout, or clinical outcomes.
+\end{itemize}
+
+\textbf{How to download.}
+\begin{enumerate}
+\item Create or sign into a Kaggle account.
+\item Open \code{https://www.kaggle.com/settings} and create an API token. This downloads \code{kaggle.json}.
+\item Place \code{kaggle.json} in \code{\%USERPROFILE\%\.kaggle\kaggle.json} on Windows.
+\item Install the Kaggle CLI in the project environment.
+\item Run the download command below.
+\item Unzip into \code{data/external/fitbit/} and record source/date in \code{SOURCE.txt}.
+\end{enumerate}
+
+\begin{lstlisting}
+uv add kaggle
+uv run kaggle datasets download -d arashnic/fitbit -p data\external\fitbit --unzip
+\end{lstlisting}
+
+\textbf{Use in MVP.}
+Optional. Use it to build a History/Trends screen that demonstrates rolling averages and recovery
+patterns. Do not call it burnout prediction.
+
+% ============================================================================
+\section{Software Tasks}
+
+Each task below is written so a builder can complete it without reading later tasks. Complete tasks in
+order unless a task explicitly says it is optional.
+
+\begin{taskbox}{T1 -- Create the software repo and scope files}
+\textbf{Goal.} Create a project folder that makes the software-first assumption explicit.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create the directory structure from Section 1.3.
+\item Add \code{README.md} with the MVP statement: ``software replay first, hardware source later.''
+\item Add \code{docs/product_scope.md} listing required release-1 behavior and postponed hardware work.
+\item Add \code{docs/no_clinical_claims.md} stating the proxy-label limitation.
+\item Add \code{.gitignore} entries for \code{data/raw/}, \code{data/external/}, \code{data/interim/}, \code{artifacts/models/*.joblib}, and local session logs.
+\end{enumerate}
+
+\begin{donebox}
+The repo can be opened by a new person and they can answer: what is being built now, what is postponed,
+where datasets go, and why hardware is not required for the first demo.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T2 -- Install and lock the Python environment}
+\textbf{Goal.} Make dataset loading, feature extraction, training, API serving, and tests reproducible.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Install \code{uv} if it is not installed.
+\item Create \code{pyproject.toml}.
+\item Add dependencies: \code{numpy}, \code{pandas}, \code{scipy}, \code{scikit-learn}, \code{neurokit2}, \code{matplotlib}, \code{seaborn}, \code{joblib}, \code{pydantic}, \code{fastapi}, \code{uvicorn}, \code{pyserial}, \code{pytest}, \code{ruff}, and \code{mypy}.
+\item Run \code{uv sync}.
+\item Add a smoke command that prints package versions.
+\end{enumerate}
+
+\begin{lstlisting}
+uv init
+uv add numpy pandas scipy scikit-learn neurokit2 matplotlib seaborn joblib pydantic fastapi uvicorn pyserial
+uv add --dev pytest ruff mypy
+uv sync
+uv run python -c "import pandas, sklearn, neurokit2, fastapi; print('software env ok')"
+\end{lstlisting}
+
+\begin{donebox}
+\code{uv.lock} exists, the smoke command passes, and a clean checkout can recreate the same environment
+with \code{uv sync}.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T3 -- Write the raw event contract before any streaming code}
+\textbf{Goal.} Define the stream format that both generated data and future hardware will use.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{docs/contracts.md}.
+\item Define one newline-delimited JSON event per sample or health update.
+\item Required common fields: \code{schema_version}, \code{type}, \code{source}, \code{session_id}, \code{seq}, \code{t_us}, and \code{ok}.
+\item Define event types: \code{ppg}, \code{eda}, \code{temp}, \code{imu}, and \code{health}.
+\item Define units: PPG raw counts, EDA relative level or microsiemens when source supports it, temperature Celsius, acceleration m/s\textsuperscript{2}.
+\item Add examples for each event type.
+\end{enumerate}
+
+\begin{lstlisting}
+{"schema_version":"neuroshield.hw.v1","type":"eda","source":"synthetic",
+ "session_id":"demo-001","seq":144,"t_us":4500000,"eda_level":0.42,"ok":true}
+\end{lstlisting}
+
+\begin{donebox}
+\code{docs/contracts.md} has enough detail that a synthetic generator and future firmware can produce
+the same schema without guessing field names or units.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T4 -- Download WESAD and prove one subject loads}
+\textbf{Goal.} Get the mandatory training dataset onto disk and inspect it before writing generic code.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Follow the WESAD download instructions in Section 2.3.
+\item Create \code{src/neuroshield/data/wesad_loader.py}.
+\item Implement a function \code{load_wesad_subject(subject_id)}.
+\item Return wrist BVP, EDA, TEMP, ACC, labels, sample rates, and subject ID.
+\item Plot one subject's BVP, EDA, TEMP, ACC magnitude, and labels for a 10-minute slice.
+\item Save the plot to \code{artifacts/plots/wesad_subject_smoke.png}.
+\end{enumerate}
+
+\textbf{Expected obstacles.} WESAD files are commonly pickled Python objects. Use \code{pickle.load(..., encoding='latin1')} if needed. Confirm the exact keys by printing one subject dictionary before building the final loader.
+
+\begin{donebox}
+One subject loads, the plot shows plausible physiological signals, label segments are visible, and
+the loader returns sample rates instead of assuming one shared rate.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T5 -- Convert WESAD into a canonical signal bundle}
+\textbf{Goal.} Hide dataset-specific structure behind one stable object used by all later code.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/data/bundle.py}.
+\item Define a \code{SignalBundle} Pydantic/dataclass object with channels, time arrays, sample rates, labels, subject ID, dataset name, and warnings.
+\item Convert WESAD wrist signals into this bundle.
+\item Preserve native sample rates: BVP 64 Hz, EDA/TEMP 4 Hz, ACC 32 Hz.
+\item Write tests for subject ID, channel names, monotonic time, label presence, and non-empty arrays.
+\end{enumerate}
+
+\begin{donebox}
+\code{pytest tests/test_wesad_loader.py} passes and no downstream task needs to know WESAD's internal pickle structure.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T6 -- Build the first feature extractor}
+\textbf{Goal.} Convert each time window into model-ready features.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/features/extract.py}.
+\item Use 60-second windows with 30-second overlap for training.
+\item Compute feature columns:
+\begin{itemize}
+\item \code{hr_mean_bpm}
+\item \code{ibi_sd_ms}
+\item \code{ibi_rmssd_ms}
+\item \code{ppg_quality}
+\item \code{eda_level}
+\item \code{eda_slope}
+\item \code{eda_response_count}
+\item \code{eda_response_mean_amp}
+\item \code{temp_mean_c}
+\item \code{temp_slope_c_per_min}
+\item \code{motion_dynamic_rms}
+\item \code{motion_dynamic_p95}
+\item \code{valid_fraction}
+\end{itemize}
+\item Use NeuroKit2 for PPG/EDA processing where possible.
+\item Add a \code{feature_version = "features-v1"} constant.
+\item Save one subject's feature table to \code{data/interim/wesad_features/S2.parquet}.
+\end{enumerate}
+
+\begin{donebox}
+Feature extraction produces a table with fixed column order, no silent all-null columns, one row per
+valid window, labels attached, and a test that catches accidental column changes.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T7 -- Label WESAD windows for the M1 binary classifier}
+\textbf{Goal.} Create clean baseline-vs-stress labels without data leakage.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Map WESAD baseline windows to \code{0}.
+\item Map WESAD stress windows to \code{1}.
+\item Exclude amusement and transition/undefined windows from M1.
+\item Drop windows with too little valid signal coverage.
+\item Save a label-count table per subject to \code{artifacts/metrics/wesad_label_counts.csv}.
+\end{enumerate}
+
+\begin{donebox}
+Every training row has exactly one binary label, subject IDs are preserved, excluded windows are counted,
+and class balance is visible before model training.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T8 -- Train M1 with leave-one-subject-out evaluation}
+\textbf{Goal.} Produce the headline software model and honest metrics.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/models/train_m1.py}.
+\item Use \code{LeaveOneGroupOut} with subject ID as the group.
+\item Train a scikit-learn pipeline with imputation, scaling if needed, and either logistic regression or random forest.
+\item Compare against a dummy classifier.
+\item Report balanced accuracy, macro-F1, confusion matrix, and per-subject metrics.
+\item Save predictions to \code{artifacts/metrics/m1_loso_predictions.csv}.
+\item Save summary metrics to \code{artifacts/metrics/m1_loso_summary.json}.
+\end{enumerate}
+
+\begin{donebox}
+The model is evaluated subject-wise, a dummy baseline is included, metrics are saved, and no subject's
+windows appear in both train and test folds.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T9 -- Save a versioned M1 model artifact}
+\textbf{Goal.} Freeze one model for the replay demo.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Train a final M1 model on all eligible WESAD windows.
+\item Save it as \code{artifacts/models/m1_wesad_features_v1.joblib}.
+\item Create \code{artifacts/models/m1_wesad_features_v1_manifest.json}.
+\item Manifest must include model version, feature version, feature column order, training dataset, code commit if available, metrics file path, threshold policy, and checksum.
+\item Add model-loading code that refuses incompatible feature versions.
+\end{enumerate}
+
+\begin{donebox}
+The model can be loaded by version, the feature order is checked before inference, and a mismatch fails clearly instead of producing a misleading prediction.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T10 -- Create the synthetic stream generator}
+\textbf{Goal.} Generate live-looking data before hardware exists.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/runtime/synthetic_source.py}.
+\item Generate event streams for phases: quiet baseline, mild stress-like rise, motion burst, recovery, and sensor fault.
+\item Emit the same raw event schema from \code{docs/contracts.md}.
+\item Include controllable seed, duration, sample rates, and phase schedule.
+\item Write a CLI command to save a fixture:
+\end{enumerate}
+
+\begin{lstlisting}
+uv run python -m neuroshield.runtime.synthetic_source ^
+  --out data\fixtures\calm_motion_stress.ndjson ^
+  --duration-sec 600 --seed 7
+\end{lstlisting}
+
+\begin{donebox}
+A committed fixture under \code{data/fixtures/} can drive the whole app without internet, datasets, or hardware.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T11 -- Implement replay source and immutable raw logs}
+\textbf{Goal.} Treat generated files and future hardware streams as interchangeable sources.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/runtime/replay_source.py}.
+\item Read NDJSON events in timestamp order and optionally play them at real speed or accelerated speed.
+\item Validate every event against Pydantic schemas.
+\item Preserve invalid lines in a raw log with parse errors rather than silently dropping them.
+\item Add counters for valid events, invalid events, missing fields, unknown schema versions, and stale periods.
+\end{enumerate}
+
+\begin{donebox}
+Replay of \code{calm_motion_stress.ndjson} produces the same typed events every run, and malformed fixtures are rejected with stable error messages.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T12 -- Compute personal baseline profiles}
+\textbf{Goal.} Make predictions personalized even before hardware.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/runtime/baseline.py}.
+\item Define a baseline profile JSON schema with feature means, feature standard deviations, accepted seconds, source, feature version, and creation time.
+\item From a quiet replay segment, compute baseline mean and standard deviation for every feature.
+\item Protect against division by zero using a minimum standard deviation policy.
+\item Add a function that transforms a feature row into z-scored features.
+\end{enumerate}
+
+\begin{donebox}
+A baseline JSON can be created from a quiet fixture, loaded later, rejected if feature versions mismatch,
+and used to z-score all model input features.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T13 -- Add motion and signal-quality abstention}
+\textbf{Goal.} Prevent the model from guessing when data is unreliable.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Define thresholds for \code{motion_dynamic_rms}, \code{motion_dynamic_p95}, \code{ppg_quality}, and \code{valid_fraction}.
+\item If motion is too high, output \code{motion_paused}.
+\item If signal coverage or PPG quality is too low, output \code{poor_signal}.
+\item Keep abstention separate from \green/\amberstatus/\redstatus predictions.
+\item Test with the synthetic motion burst.
+\end{enumerate}
+
+\begin{donebox}
+The replay fixture visibly pauses inference during motion and resumes after the configured quiet period.
+No low-quality window receives a confident stress status.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T14 -- Convert model probabilities into live states}
+\textbf{Goal.} Turn M1 output into stable product states.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Define states: \code{waiting}, \code{calibrating}, \code{green}, \code{amber}, \code{red}, \code{motion_paused}, \code{poor_signal}, \code{stale}, and \code{error}.
+\item Define threshold policy: example \green{} below 0.45, \amberstatus{} from 0.45 to 0.70, \redstatus{} above 0.70.
+\item Add persistence/hysteresis so one spike does not immediately trigger red.
+\item Save every status with timestamp, model version, feature version, probability, quality, and reasons.
+\end{enumerate}
+
+\begin{donebox}
+A deterministic replay produces a predictable sequence of states: waiting, green, motion paused,
+recovery, amber/red test segment, recovery.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T15 -- Build plain-language explanations}
+\textbf{Goal.} Explain status using features, not vague claims.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Start with z-score ranking: largest absolute personalized feature deviations become reasons.
+\item For logistic regression, compute signed feature contributions if that model is used.
+\item For random forest, use permutation/importances offline, but keep live explanations based on z-score and direction unless SHAP is fast enough.
+\item Create restrained templates:
+\begin{itemize}
+\item ``Skin-response activity is above your quiet baseline.''
+\item ``Pulse features are higher than your quiet baseline.''
+\item ``Temperature trend is lower than your quiet baseline.''
+\item ``Hand motion is high, so the model is paused.''
+\end{itemize}
+\item Never output medical explanations such as ``panic attack starting.''
+\end{enumerate}
+
+\begin{donebox}
+Every colored status has 1--3 ranked reasons, every reason maps to a real feature, and no explanation
+makes a diagnosis or unsupported prediction.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T16 -- Build the FastAPI backend}
+\textbf{Goal.} Serve live state to a dashboard without tying the app to hardware.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create \code{src/neuroshield/api/main.py}.
+\item Implement endpoints:
+\begin{itemize}
+\item \code{GET /api/v1/health}
+\item \code{GET /api/v1/system}
+\item \code{POST /api/v1/session/start}
+\item \code{POST /api/v1/calibration/start}
+\item \code{GET /api/v1/status/latest}
+\item \code{GET /api/v1/history}
+\item \code{WS /ws/v1/live}
+\end{itemize}
+\item Add source mode options: \code{synthetic}, \code{replay}, and later \code{serial}.
+\item Bind to \code{127.0.0.1} by default.
+\item Add typed error codes for missing model, missing baseline, schema mismatch, stale source, and poor signal.
+\end{enumerate}
+
+\begin{donebox}
+The backend starts with a replay file, health reports model/source readiness, WebSocket pushes status updates,
+and tests cover success and error cases.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T17 -- Build the dashboard}
+\textbf{Goal.} Make the MVP usable from the first screen.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Create the frontend under \code{app/} using Next.js or a simpler Streamlit dashboard if time is short.
+\item Required visible sections: connection state, current status, quality row, reasons, latest values, short history, calibration controls.
+\item Implement all states: disconnected, waiting, calibrating, green, amber, red, motion paused, poor signal, stale, and backend error.
+\item Validate incoming backend messages in the browser. Unknown schema versions must show an error.
+\item Add a history chart for the last few minutes of probability/status/features.
+\end{enumerate}
+
+\begin{donebox}
+Running the replay backend and dashboard shows a complete live experience without hardware. The UI never shows an old green status as current after the backend stops.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T18 -- Add dataset loader for one external validation dataset}
+\textbf{Goal.} Prove the pipeline can handle data outside WESAD.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Choose Stress-Predict first if fast validation is needed; choose Nurse Stress if testing messy real-world robustness is more important.
+\item Follow the relevant download instructions from Section 2.
+\item Build a loader that returns the same \code{SignalBundle}.
+\item Document channel intersection: which features can and cannot be computed.
+\item Run the frozen WESAD-trained model on compatible windows.
+\item Save compatibility notes and metrics to \code{artifacts/metrics/external_validation_notes.md}.
+\end{enumerate}
+
+\begin{donebox}
+At least one external dataset either runs through the frozen pipeline or has a written, specific incompatibility report.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T19 -- Build the software acceptance replay}
+\textbf{Goal.} Create the official proof that software is ready before hardware starts.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Start from a clean terminal.
+\item Run all backend tests and feature/model tests.
+\item Generate or load the replay fixture.
+\item Create a baseline from the quiet segment.
+\item Start backend in replay mode.
+\item Start dashboard.
+\item Verify waiting, green, motion pause, recovery, amber/red, history, backend restart, stale state, and reconnect.
+\item Save a screen recording or screenshots.
+\item Write \code{artifacts/demo/software_acceptance.json} with commands, versions, commit, files, and pass/fail notes.
+\end{enumerate}
+
+\begin{donebox}
+A person who did not write the code can follow the README and reproduce the full software-only demo.
+This is the gate for starting hardware integration.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{T20 -- Prepare the hardware handoff contract}
+\textbf{Goal.} Make later hardware work a source replacement, not a rewrite.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Write \code{docs/hardware_handoff.md}.
+\item Include the exact raw event schema, sample-rate targets, units, serial settings, health event requirements, and error handling.
+\item Include a sample replay file and expected parser counters.
+\item State that hardware acceptance begins only when the device emits \code{neuroshield.hw.v1} events accepted by the existing replay/serial adapter.
+\end{enumerate}
+
+\begin{donebox}
+The future firmware builder can implement one job: emit the existing event contract. They do not need
+to understand model training, dashboard internals, or feature extraction to begin.
+\end{donebox}
+\end{taskbox}
+
+% ============================================================================
+\section{Optional Tasks After Core MVP}
+
+\begin{taskbox}{O1 -- Add PPG-DaLiA motion-quality analysis}
+\textbf{Goal.} Replace guessed motion thresholds with evidence.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Download PPG-DaLiA.
+\item Load wrist PPG and acceleration plus chest ECG-derived ground truth.
+\item Run pulse extraction under different motion levels.
+\item Plot heart-rate error versus acceleration magnitude.
+\item Pick conservative thresholds for \code{motion_paused}.
+\end{enumerate}
+
+\begin{donebox}
+Motion thresholds are documented with a plot and a conservative chosen value.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{O2 -- Add SWELL-KW cognitive-load experiment}
+\textbf{Goal.} Explore FocusGuard without changing the core M1 MVP.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Request/download SWELL-KW if access is available.
+\item Use only channels that map to the glove concept, mainly HRV/pulse-derived features and EDA.
+\item Train a separate M2 classifier with subject-wise evaluation.
+\item Label it experimental in the dashboard/report.
+\end{enumerate}
+
+\begin{donebox}
+M2 has separate metrics and cannot be confused with the validated M1 model.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{O3 -- Add Fitbit trends screen}
+\textbf{Goal.} Demonstrate long-term trend UI without claiming burnout prediction.
+
+\textbf{Steps.}
+\begin{enumerate}
+\item Download the Kaggle Fitbit dataset.
+\item Parse daily activity, minute-level heart rate, and sleep files.
+\item Build rolling averages for resting heart-rate proxy, activity, and sleep duration.
+\item Show trend cards in the dashboard using clear ``descriptive only'' wording.
+\end{enumerate}
+
+\begin{donebox}
+The dashboard can display trend logic on real longitudinal data, and every label says descriptive trend rather than burnout detection.
+\end{donebox}
+\end{taskbox}
+
+% ============================================================================
+\section{Sprint Order}
+
+\begin{longtable}{P{0.10\linewidth}P{0.22\linewidth}P{0.60\linewidth}}
+\toprule
+\textbf{Day} & \textbf{Primary focus} & \textbf{End-of-day evidence} \\
+\midrule
+1 & Scope, repo, Python environment & README, scope docs, \code{uv.lock}, package smoke test. \\
+2 & WESAD download and loader & One WESAD subject plot and loader test. \\
+3 & Signal bundle and features & Feature table for one subject, fixed \code{features-v1} columns. \\
+4 & Labels and M1 training & LOSO metrics, dummy comparison, saved predictions. \\
+5 & Model artifact and synthetic source & Versioned model, generated NDJSON replay fixture. \\
+6 & Baseline, motion gate, live states & Replay produces green, motion pause, recovery, amber/red sequence. \\
+7 & FastAPI backend & Health/status/WebSocket endpoints work with replay. \\
+8 & Dashboard & Live UI shows status, reasons, quality, history, and stale/reconnect states. \\
+9 & External validation and docs & Stress-Predict or Nurse loader/compatibility report, model card draft. \\
+10 & Acceptance demo & Clean replay demo, tests, screenshots/recording, software acceptance JSON. \\
+\bottomrule
+\end{longtable}
+
+% ============================================================================
+\section{Final Software-First Definition of Done}
+
+\begin{donebox}
+The software-first MVP is complete only when all items below are true:
+\begin{itemize}
+\item WESAD is downloaded, documented, loadable, and not committed to Git.
+\item A versioned \code{SignalBundle} abstraction exists.
+\item \code{features-v1} has fixed columns, tests, and at least one WESAD output table.
+\item M1 has subject-wise WESAD metrics, dummy comparison, saved predictions, and a model card.
+\item A versioned model artifact and manifest load successfully.
+\item Synthetic/replay NDJSON uses the same schema future hardware will use.
+\item A personal baseline JSON is created, loaded, and applied to live features.
+\item Motion/poor-signal windows cause explicit abstention.
+\item The backend serves typed status over REST and WebSocket.
+\item The dashboard shows live status, reasons, quality, calibration state, history, stale state, and reconnect.
+\item At least one external validation dataset is attempted or has a documented access/incompatibility reason.
+\item A clean-machine README can reproduce the software replay demo.
+\item Hardware integration has not required changing the model, features, dashboard, or API contracts.
+\end{itemize}
+\end{donebox}
+
+% ============================================================================
+\section{Source Links}
+
+\begin{itemize}
+\item WESAD, UCI Machine Learning Repository:
+\url{https://archive.ics.uci.edu/dataset/465/wesad+wearable+stress+and+affect+detection}
+\item PPG-DaLiA, UCI Machine Learning Repository:
+\url{https://archive.ics.uci.edu/dataset/495/ppg+dalia}
+\item Stress-Predict Dataset, GitHub:
+\url{https://github.com/italha-d/Stress-Predict-Dataset}
+\item Nurse Stress Dataset, Dryad:
+\url{https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f}
+\item SWELL-KW dataset page:
+\url{http://cs.ru.nl/~skoldijk/SWELL-KW/Dataset.html}
+\item Fitbit Fitness Tracker Data, Kaggle:
+\url{https://www.kaggle.com/datasets/arashnic/fitbit}
+\end{itemize}
+
+\end{document}

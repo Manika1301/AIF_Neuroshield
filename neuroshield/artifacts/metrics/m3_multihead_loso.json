@@ -1,0 +1,85 @@
+{
+  "head_a": {
+    "head": "head_a",
+    "n_groups": 15,
+    "n_windows": 919,
+    "datasets": [
+      "wesad"
+    ],
+    "model": {
+      "balanced_accuracy": 0.9187850208329057,
+      "macro_f1": 0.9176902605046318,
+      "confusion_matrix": [
+        [
+          550,
+          37
+        ],
+        [
+          33,
+          299
+        ]
+      ],
+      "n_windows": 919
+    },
+    "dummy": {
+      "balanced_accuracy": 0.5,
+      "macro_f1": 0.3897742363877822,
+      "confusion_matrix": [
+        [
+          587,
+          0
+        ],
+        [
+          332,
+          0
+        ]
+      ],
+      "n_windows": 919
+    }
+  },
+  "head_b": {
+    "head": "head_b",
+    "classes": {
+      "baseline": 0,
+      "stress": 1,
+      "amusement": 2,
+      "meditation": 3
+    },
+    "n_groups": 15,
+    "n_windows": 1498,
+    "model": {
+      "balanced_accuracy": 0.6161378946807442,
+      "macro_f1": 0.601242960783768,
+      "confusion_matrix": [
+        [
+          547,
+          3,
+          16,
+          21
+        ],
+        [
+          21,
+          280,
+          9,
+          22
+        ],
+        [
+          100,
+          4,
+          8,
+          74
+        ],
+        [
+          91,
+          33,
+          15,
+          254
+        ]
+      ]
+    },
+    "dummy": {
+      "balanced_accuracy": 0.25,
+      "macro_f1": 0.1407673860911271
+    }
+  }
+}

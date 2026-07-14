@@ -1,0 +1,22 @@
+# Repo-root ignores (the git root is this directory; neuroshield/.gitignore covers the app).
+
+# OS
+.DS_Store
+
+# Large downloaded datasets that landed outside neuroshield/ (belt-and-suspenders;
+# neuroshield/.gitignore already covers data/ paths inside the app).
+**/data/doi_*/
+**/data/external/
+**/data/raw/
+**/data/interim/
+
+# Python virtualenvs and caches anywhere
+**/.venv/
+**/__pycache__/
+**/.pytest_cache/
+**/.ruff_cache/
+**/.mypy_cache/
+
+# Node
+**/node_modules/
+**/.next/

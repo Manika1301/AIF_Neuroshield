@@ -1,0 +1,51 @@
+{
+  "results":[
+    {
+      "config":"B. dense",
+      "balanced_accuracy":0.9265525007,
+      "macro_f1":0.9345779307,
+      "n_windows":2755
+    },
+    {
+      "config":"I. dense + 5-seed ensemble",
+      "balanced_accuracy":0.9265525007,
+      "macro_f1":0.9345779307,
+      "n_windows":2755
+    },
+    {
+      "config":"M. dense + unlimited depth",
+      "balanced_accuracy":0.9302612952,
+      "macro_f1":0.9327197014,
+      "n_windows":2755
+    },
+    {
+      "config":"O. dense + 5-seed + stronger L2",
+      "balanced_accuracy":0.9396958126,
+      "macro_f1":0.9457204513,
+      "n_windows":2755
+    },
+    {
+      "config":"NESTED (config chosen inside each fold)",
+      "balanced_accuracy":0.9406370077,
+      "macro_f1":0.9461840019,
+      "n_windows":2755,
+      "configs_chosen":[
+        "B. dense",
+        "O. dense + 5-seed + stronger L2",
+        "B. dense",
+        "B. dense",
+        "B. dense",
+        "O. dense + 5-seed + stronger L2",
+        "B. dense",
+        "M. dense + unlimited depth",
+        "O. dense + 5-seed + stronger L2",
+        "M. dense + unlimited depth",
+        "M. dense + unlimited depth",
+        "M. dense + unlimited depth",
+        "B. dense",
+        "O. dense + 5-seed + stronger L2",
+        "M. dense + unlimited depth"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "results":[
+    {
+      "config":"A. current shipped (step 30s)",
+      "balanced_accuracy":0.9187850208,
+      "macro_f1":0.9176902605,
+      "n_windows":919
+    },
+    {
+      "config":"B. dense windows (step 10s)",
+      "balanced_accuracy":0.9265525007,
+      "macro_f1":0.9345779307,
+      "n_windows":2755
+    },
+    {
+      "config":"C. dense + smooth k=3",
+      "balanced_accuracy":0.9223741084,
+      "macro_f1":0.931545792,
+      "n_windows":2755
+    },
+    {
+      "config":"D. dense + smooth k=5",
+      "balanced_accuracy":0.9151127663,
+      "macro_f1":0.9256046202,
+      "n_windows":2755
+    },
+    {
+      "config":"E. dense + smooth k=9",
+      "balanced_accuracy":0.9030403317,
+      "macro_f1":0.9153684832,
+      "n_windows":2755
+    },
+    {
+      "config":"F. robust personal ref + dense + smooth k=5",
+      "balanced_accuracy":0.8998768305,
+      "macro_f1":0.9098593306,
+      "n_windows":2755
+    },
+    {
+      "config":"G. deeper trees + dense + smooth k=5",
+      "balanced_accuracy":0.9190406493,
+      "macro_f1":0.9239327081,
+      "n_windows":2755
+    },
+    {
+      "config":"H. stronger L2 + dense + smooth k=5",
+      "balanced_accuracy":0.9258952351,
+      "macro_f1":0.934479996,
+      "n_windows":2755
+    }
+  ]
+}

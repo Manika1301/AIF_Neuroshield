@@ -1,0 +1,69 @@
+{
+  "model_version": "m3_multihead_personalized_v1",
+  "model_type": "multihead: calibrated_hgb (head_a) + hgb_4class (head_b)",
+  "feature_version": "features-v2",
+  "feature_columns": [
+    "hr_mean_bpm",
+    "ibi_sd_ms",
+    "ibi_rmssd_ms",
+    "ppg_quality",
+    "hrv_lf",
+    "hrv_hf",
+    "hrv_lf_hf_ratio",
+    "eda_level",
+    "eda_slope",
+    "eda_response_count",
+    "eda_response_mean_amp",
+    "eda_tonic_mean",
+    "eda_tonic_slope",
+    "eda_phasic_mean",
+    "temp_mean_c",
+    "temp_slope_c_per_min",
+    "motion_dynamic_rms",
+    "motion_dynamic_p95",
+    "valid_fraction",
+    "hr_mean_bpm_p",
+    "ibi_sd_ms_p",
+    "ibi_rmssd_ms_p",
+    "hrv_lf_p",
+    "hrv_hf_p",
+    "hrv_lf_hf_ratio_p",
+    "eda_level_p",
+    "eda_slope_p",
+    "eda_response_count_p",
+    "eda_response_mean_amp_p",
+    "eda_tonic_mean_p",
+    "eda_tonic_slope_p",
+    "eda_phasic_mean_p",
+    "temp_mean_c_p",
+    "temp_slope_c_per_min_p",
+    "motion_dynamic_rms_p",
+    "motion_dynamic_p95_p"
+  ],
+  "heads": {
+    "head_a": {
+      "task": "binary graded stress",
+      "training_datasets": [
+        "wesad"
+      ],
+      "n_windows": 919,
+      "n_groups": 15
+    },
+    "head_b": {
+      "task": "affect 4-class (baseline/stress/amusement/meditation)",
+      "training_datasets": [
+        "wesad"
+      ],
+      "n_windows": 1498,
+      "trained": true
+    }
+  },
+  "threshold_policy": {
+    "green_max": 0.45,
+    "amber_max": 0.7
+  },
+  "code_commit": "e7d701592ab3a2ae335d94ad87d485899bf08812",
+  "metrics_path": "artifacts/metrics/m3_multihead_loso.json",
+  "checksum_sha256": "48ff5ee23db0f08e604f333f89cacf8a09042242128e2919e3cb3b8283c756b7",
+  "created_at": "2026-07-13T18:23:52.064649+00:00"
+}

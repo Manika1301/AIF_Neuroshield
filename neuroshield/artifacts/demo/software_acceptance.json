@@ -1,0 +1,119 @@
+{
+  "generated_at": "2026-07-11T18:49:04.983741+00:00",
+  "git_commit": "e7d701592ab3a2ae335d94ad87d485899bf08812",
+  "package_versions": {
+    "numpy": "2.2.6",
+    "pandas": "2.3.3",
+    "scipy": "1.15.3",
+    "sklearn": "1.7.2",
+    "neurokit2": "0.2.13",
+    "matplotlib": "3.10.9",
+    "seaborn": "0.13.2",
+    "joblib": "1.5.3",
+    "pydantic": "2.13.4",
+    "fastapi": "0.139.0",
+    "uvicorn": "0.51.0",
+    "serial": "3.5"
+  },
+  "commands": [
+    "uv sync",
+    "uv run python -m neuroshield.smoke",
+    "uv run pytest tests/ -q",
+    "uv run python scripts/software_acceptance.py"
+  ],
+  "files_produced_or_verified": [
+    "data/fixtures/calm_motion_stress.ndjson",
+    "artifacts/models/m2_multihead_features_v1.joblib",
+    "artifacts/models/m2_multihead_features_v1_manifest.json",
+    "artifacts/metrics/m2_multihead_loso.json",
+    "artifacts/metrics/validation_scoreboard.json",
+    "artifacts/metrics/nurse_context_insights.md",
+    "artifacts/models/m1_wesad_features_v1.joblib",
+    "artifacts/metrics/external_validation_notes.md",
+    "artifacts/demo/software_acceptance.json"
+  ],
+  "checks": [
+    {
+      "name": "full_test_suite",
+      "status": "pass",
+      "detail": "  /Users/manikajhaveri/Downloads/ai_neuroshield/AIF_Neuroshield/neuroshield/.venv/lib/python3.10/site-packages/numpy/_core/_methods.py:145: RuntimeWarning: invalid value encountered in scalar divide\n    ret = ret.dtype.type(ret / rcount)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n331 passed, 809 warnings in 223.99s (0:03:43)"
+    },
+    {
+      "name": "replay_fixture_present",
+      "status": "pass",
+      "detail": "data/fixtures/calm_motion_stress.ndjson"
+    },
+    {
+      "name": "model_loaded_on_startup",
+      "status": "pass",
+      "detail": "model_error=None"
+    },
+    {
+      "name": "initial_state_is_waiting",
+      "status": "pass",
+      "detail": "state='waiting'"
+    },
+    {
+      "name": "calibrating_after_session_start",
+      "status": "pass",
+      "detail": "state='calibrating'"
+    },
+    {
+      "name": "calibration_succeeds",
+      "status": "pass",
+      "detail": "n_accepted_windows=3"
+    },
+    {
+      "name": "history_non_empty",
+      "status": "pass",
+      "detail": "18 records"
+    },
+    {
+      "name": "sequence_includes_green",
+      "status": "pass",
+      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+    },
+    {
+      "name": "sequence_includes_motion_paused",
+      "status": "pass",
+      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+    },
+    {
+      "name": "sequence_includes_poor_signal",
+      "status": "pass",
+      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+    },
+    {
+      "name": "enriched_payload_present",
+      "status": "pass",
+      "detail": "12 scored windows with stress_index + axes"
+    },
+    {
+      "name": "color_state_machine_reaches_amber_and_red",
+      "status": "pass",
+      "detail": "amber='amber' red='red' (note: synthetic fixture itself stayed green under the real model; deduped fixture states=['green', 'motion_paused', 'green', 'poor_signal'])"
+    },
+    {
+      "name": "unreachable_after_stop",
+      "status": "pass",
+      "detail": "BackendUnreachableError raised as expected"
+    },
+    {
+      "name": "no_stale_status_after_restart",
+      "status": "pass",
+      "detail": "state='waiting' (must not be a leftover green/amber/red)"
+    },
+    {
+      "name": "reconnect_and_new_session_works",
+      "status": "pass",
+      "detail": "state='poor_signal'"
+    },
+    {
+      "name": "stale_state_detected",
+      "status": "pass",
+      "detail": "state='stale' after a 140s gap with a 5s threshold"
+    }
+  ],
+  "overall": "pass",
+  "note": "No screen recording or screenshot was captured -- no browser automation tool was available in this environment. This JSON transcript plus the passing automated test suite are the evidence of record instead (see docs/software_acceptance.md)."
+}

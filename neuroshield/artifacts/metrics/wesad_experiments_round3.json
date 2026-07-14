@@ -1,0 +1,52 @@
+{
+  "results":[
+    {
+      "config":"P. step30 \/ ref 300s  (currently shipped)",
+      "balanced_accuracy":0.9187850208,
+      "macro_f1":0.9176902605,
+      "n_windows":919
+    },
+    {
+      "config":"Q. step10 \/ ref 120s",
+      "balanced_accuracy":0.9191948968,
+      "macro_f1":0.9236247076,
+      "n_windows":2755
+    },
+    {
+      "config":"R. step10 \/ ref 150s",
+      "balanced_accuracy":0.8950186068,
+      "macro_f1":0.8990093311,
+      "n_windows":2755
+    },
+    {
+      "config":"S. step10 \/ ref 300s",
+      "balanced_accuracy":0.8964382547,
+      "macro_f1":0.9008806801,
+      "n_windows":2755
+    },
+    {
+      "config":"T. step10 \/ ref 600s",
+      "balanced_accuracy":0.9143346736,
+      "macro_f1":0.9214688773,
+      "n_windows":2755
+    },
+    {
+      "config":"U. step30 \/ ref 150s",
+      "balanced_accuracy":0.9214147903,
+      "macro_f1":0.9280832638,
+      "n_windows":919
+    },
+    {
+      "config":"V. step10 \/ ref 150s + 5-seed + L2",
+      "balanced_accuracy":0.9171022729,
+      "macro_f1":0.9193003677,
+      "n_windows":2755
+    },
+    {
+      "config":"W. step10 \/ ref 150s + unlimited depth",
+      "balanced_accuracy":0.8986448504,
+      "macro_f1":0.9035528251,
+      "n_windows":2755
+    }
+  ]
+}

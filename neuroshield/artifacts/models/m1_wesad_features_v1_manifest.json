@@ -1,0 +1,35 @@
+{
+  "model_version": "m1_wesad_features_v1",
+  "model_type": "logistic_regression",
+  "feature_version": "features-v1",
+  "feature_columns": [
+    "hr_mean_bpm",
+    "ibi_sd_ms",
+    "ibi_rmssd_ms",
+    "ppg_quality",
+    "eda_level",
+    "eda_slope",
+    "eda_response_count",
+    "eda_response_mean_amp",
+    "temp_mean_c",
+    "temp_slope_c_per_min",
+    "motion_dynamic_rms",
+    "motion_dynamic_p95",
+    "valid_fraction"
+  ],
+  "training_dataset": "wesad",
+  "n_subjects": 15,
+  "n_windows": 919,
+  "class_balance": {
+    "baseline": 587,
+    "stress": 332
+  },
+  "code_commit": "e7d701592ab3a2ae335d94ad87d485899bf08812",
+  "metrics_path": "artifacts/metrics/m1_loso_summary.json",
+  "threshold_policy": {
+    "green_max": 0.45,
+    "amber_max": 0.7
+  },
+  "checksum_sha256": "30b70c6ef78d1b1ade0bf68abf74d1af3bce1388c8b07656c3552c9fa89dcdcf",
+  "created_at": "2026-07-10T17:02:11.951205+00:00"
+}

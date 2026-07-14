@@ -1,0 +1,607 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=0.82in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[table]{xcolor}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{xurl}
+\usepackage[colorlinks=true,linkcolor=nsblue,urlcolor=nsteal,citecolor=nsblue]{hyperref}
+
+\definecolor{nsblue}{HTML}{1F6FB2}
+\definecolor{nsteal}{HTML}{187F79}
+\definecolor{nsgreen}{HTML}{247A4B}
+\definecolor{nsamber}{HTML}{B57500}
+\definecolor{nsred}{HTML}{B8322A}
+\definecolor{nsgrey}{HTML}{343A40}
+\definecolor{nslight}{HTML}{EEF5F7}
+\definecolor{codebg}{HTML}{F6F8FA}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.45em}
+\setlength{\headheight}{14pt}
+\setcounter{tocdepth}{2}
+\setlist[itemize]{leftmargin=1.45em,itemsep=2pt,topsep=3pt}
+\setlist[enumerate]{leftmargin=1.65em,itemsep=3pt,topsep=3pt}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{P}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\titleformat{\section}{\sffamily\Large\bfseries\color{nsblue}}{\thesection}{0.55em}{}
+  [{\color{nsblue!25}\titlerule[0.8pt]}]
+\titleformat{\subsection}{\sffamily\large\bfseries\color{nsgrey}}{\thesubsection}{0.5em}{}
+\titleformat{\subsubsection}{\sffamily\normalsize\bfseries\color{nsteal}}{}{0pt}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\sffamily\color{nsgrey}NeuroShield End-to-End Design Document}
+\fancyhead[R]{\small\sffamily\color{nsgrey}\thepage}
+\renewcommand{\headrule}{\vskip1pt{\color{nsblue!40}\hrule height 0.7pt}}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  columns=fullflexible,
+  showstringspaces=false,
+  upquote=true,
+  xleftmargin=4pt,
+  xrightmargin=4pt,
+  aboveskip=5pt,
+  belowskip=5pt
+}
+
+\newtcolorbox{taskbox}[2][]{
+  breakable,
+  enhanced,
+  colback=white,
+  colframe=nsblue,
+  colbacktitle=nsblue,
+  coltitle=white,
+  fonttitle=\sffamily\bfseries,
+  title={#2},
+  boxrule=0.8pt,
+  arc=2pt,
+  left=8pt,right=8pt,top=7pt,bottom=7pt,
+  #1
+}
+
+\newtcolorbox{donebox}{
+  breakable,
+  colback=nsgreen!6,
+  colframe=nsgreen,
+  title={Definition of done},
+  fonttitle=\sffamily\bfseries,
+  boxrule=0.9pt,
+  arc=2pt
+}
+
+\newtcolorbox{warningbox}[1]{
+  breakable,
+  colback=nsamber!8,
+  colframe=nsamber,
+  colbacktitle=nsamber!8,
+  coltitle=nsamber!65!black,
+  fonttitle=\sffamily\bfseries,
+  title={#1},
+  boxrule=0.9pt,
+  arc=2pt
+}
+
+\newtcolorbox{plainbox}[1]{
+  breakable,
+  colback=nslight,
+  colframe=nsblue!55,
+  title={#1},
+  fonttitle=\sffamily\bfseries,
+  boxrule=0.8pt,
+  arc=2pt
+}
+
+\newcommand{\code}{\path}
+\newcommand{\statusdone}{\textbf{\textcolor{nsgreen}{DONE}}}
+\newcommand{\statusnext}{\textbf{\textcolor{nsamber}{PLANNED}}}
+\newcommand{\green}{\textbf{\textcolor{nsgreen}{GREEN}}}
+\newcommand{\amberstatus}{\textbf{\textcolor{nsamber}{AMBER}}}
+\newcommand{\redstatus}{\textbf{\textcolor{nsred}{RED}}}
+
+\begin{document}
+\thispagestyle{empty}
+
+\begin{tcolorbox}[colback=nsblue,colframe=nsblue,arc=3pt,boxrule=0pt,
+  left=16pt,right=16pt,top=16pt,bottom=16pt]
+{\sffamily\color{white}\fontsize{27}{31}\selectfont\bfseries NeuroShield}\par
+\vspace{4pt}
+{\sffamily\color{white}\LARGE End-to-End Design Document}\par
+\vspace{8pt}
+{\sffamily\color{white!90}\large From a binary traffic-light MVP to a personalized, multi-dimensional
+stress \& recovery application, grounded in three public Empatica E4 datasets}
+\end{tcolorbox}
+
+\vspace{8pt}
+\textbf{Author:} Manika Jhaveri\hfill\textbf{Status:} living design doc\hfill\textbf{Date:} 2026-07-11
+
+\begin{plainbox}{Purpose}
+This document is the single end-to-end reference for what NeuroShield is, what it predicts, which
+data it uses, and how the software is structured. It describes the current implemented system, the
+next-phase design (multi-output models, enriched backend, React frontend), the datasets with full
+references, and a Definition of Done (DoD) for every task. It supersedes ad-hoc notes and is the
+contract we build against.
+\end{plainbox}
+
+\begin{warningbox}{Honesty boundary (non-negotiable)}
+NeuroShield is not a clinical device. It detects patterns associated with public stress-proxy
+labels and simulated streams. It must never claim to predict panic attacks, diagnose anxiety,
+diagnose heat illness, or detect burnout. Every model reports its real (possibly modest)
+validation numbers; Tier-4 context analysis is descriptive co-occurrence, never a live cause
+predictor. See \code{docs/no_clinical_claims.md}.
+\end{warningbox}
+
+\tableofcontents
+\newpage
+
+% ============================================================================
+\section{Product Vision: Beyond the Traffic Light}
+
+The MVP produces one binary stress probability rendered as \green/\amberstatus/\redstatus. That
+collapses four independently measured physiological systems into a single bit and ignores most of
+the label richness the datasets contain. The redesigned product exposes what the sensors actually
+measure, as four tiers of output.
+
+\begin{longtable}{P{0.16\linewidth}P{0.34\linewidth}P{0.42\linewidth}}
+\toprule
+\textbf{Tier} & \textbf{What it shows} & \textbf{How it is produced} \\
+\midrule
+Tier 1: Physiology & Four personalized arousal axes: cardiac, electrodermal, thermal, movement. & Direct z-scores of measured features vs.\ the user's own baseline. No model; fully honest. \\
+Tier 2: Models & Graded stress index (0--100) plus a calm/elevated/high level, and a 4-class affect state (baseline / stress / amusement / meditation). & Two calibrated gradient-boosting heads (Section 5). \\
+Tier 3: Dynamics & Recovery trend, time-in-state, sustained stress episodes, HRV-proxy recovery score. & Rolling statistics over the status stream. No model. \\
+Tier 4: Insights & Which contexts co-occur with high physiological arousal; a 3-dataset validation scoreboard. & Offline descriptive analytics on the Nurse Stress survey. Never a live predictor. \\
+\bottomrule
+\end{longtable}
+
+% ============================================================================
+\section{End-to-End System Architecture}
+
+One feature pipeline serves both training (on public data) and live prediction (on the
+replay/synthetic stream, and later hardware). The raw event contract
+(\code{docs/contracts.md}, schema \code{neuroshield.hw.v1}) is the seam that lets a future device
+replace only the stream source.
+
+\begin{lstlisting}
+ PUBLIC DATASETS                          LIVE / REPLAY SOURCE
+ WESAD / Stress-Predict / Nurse           synthetic_source | replay_source | (future) serial
+        |                                          |
+        v                                          v
+ dataset loaders --> SignalBundle <-- events_to_bundle  (one canonical object)
+        |
+        v
+ features/extract.py  (features-v1: 13 columns, 60s/30s windows, quality gate)
+        |
+        +--> label harmonization (WESAD 0/1/amuse/medit; SP 0/1; Nurse 0/1)
+        |
+        v
+ MODELS                                   RUNTIME (live)
+ Head A: graded stress (calibrated GBM)   baseline z-score --> quality gate -->
+ Head B: affect 4-class (GBM)               model heads --> status state machine -->
+ + 4-axis decomposition (derived)           explanations
+        |                                          |
+        v                                          v
+ artifacts/ (versioned model + manifest)   FastAPI backend (REST + WebSocket)
+ metrics/ (LOSO, scoreboard, insights)            |
+                                                  v
+                                           React / Next.js dashboard
+                                           (Live | Summary | Trends | Insights)
+\end{lstlisting}
+
+\subsection{Repository layout}
+\begin{lstlisting}
+neuroshield/
+  src/neuroshield/
+    data/        wesad_loader, stress_predict_loader, nurse_stress_loader, bundle
+    features/    extract (features-v1), labels
+    models/      train_m1, artifact, external_validation, (new) multihead, scoreboard
+    runtime/     synthetic_source, replay_source, events_to_bundle, baseline,
+                 quality_gate, status, explain, (new) axes, dynamics
+    api/         engine, main (FastAPI)
+  app/           dashboard (Streamlit, current) -> web/ (Next.js, planned)
+  tests/         one suite per module (253 passing at time of writing)
+  artifacts/     models/ metrics/ plots/ demo/
+  docs/          contracts, datasets, model cards, acceptance, roadmap, this doc
+  scripts/       software_acceptance.py
+\end{lstlisting}
+
+% ============================================================================
+\section{Datasets and References}
+
+All three datasets are recorded on the Empatica E4 wrist device (or its wrist channels), giving
+the same four signal families our target glove sensors produce: PPG/BVP (pulse), EDA (skin
+conductance), skin temperature, and 3-axis accelerometer. Native rates: BVP 64\,Hz, EDA 4\,Hz,
+TEMP 4\,Hz, ACC 32\,Hz. Raw data is never committed to Git; provenance lives in each
+\code{data/external/<name>/SOURCE.txt}.
+
+\begin{longtable}{P{0.17\linewidth}P{0.13\linewidth}P{0.16\linewidth}P{0.42\linewidth}}
+\toprule
+\textbf{Dataset} & \textbf{Subjects} & \textbf{Role} & \textbf{Labels / notes} \\
+\midrule
+WESAD & 15 & Training (Head A + Head B) & Lab protocol; baseline/stress/amusement/meditation. The only training source for the affect head. \\
+Stress-Predict & 35 & Pooled into Head A training; external validation & Stroop / interview / hyperventilation; per-second binary label. \\
+Nurse Stress & 15 & Held-out real-world validation + Tier-4 insights & Real hospital shifts; sparse self-reported 0/1/2 events with rich context tags. Not used for training. \\
+\bottomrule
+\end{longtable}
+
+\subsection{WESAD --- Wearable Stress and Affect Detection}
+\begin{itemize}
+\item UCI listing: \url{https://archive.ics.uci.edu/dataset/465/wesad+wearable+stress+and+affect+detection}
+\item Original page (U.\ Siegen): \url{https://www.eti.uni-siegen.de/ubicomp/home/datasets/icmi18/index.html.en}
+\item \textbf{Citation.} P.\ Schmidt, A.\ Reiss, R.\ Duerichen, C.\ Marberger, K.\ Van Laerhoven.
+``Introducing WESAD, a Multimodal Dataset for Wearable Stress and Affect Detection.'' ICMI 2018.
+DOI: \href{https://doi.org/10.1145/3242969.3242985}{10.1145/3242969.3242985}
+\item License: scientific, non-commercial use with attribution.
+\end{itemize}
+
+\subsection{Stress-Predict Dataset}
+\begin{itemize}
+\item Repository: \url{https://github.com/italha-d/Stress-Predict-Dataset}
+\item Commit used: \code{f49d2eae603f90c3f0140fbbbae7c0480d651023}
+\item \textbf{Citation.} T.\ Iqbal, A.\ J.\ Simpkin, D.\ Roshan, et al. ``Stress Monitoring Using
+Wearable Sensors: A Pilot Study and Stress-Predict Dataset.'' \textit{Sensors} 22(21):8135, 2022.
+DOI: \href{https://doi.org/10.3390/s22218135}{10.3390/s22218135}
+\end{itemize}
+
+\subsection{Nurse Stress Dataset}
+\begin{itemize}
+\item Dryad: \url{https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f}
+\item Methods: \url{https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f#methods}
+\item \textbf{Citation.} S.\ Hosseini, R.\ Gottumukkala, S.\ Katragadda, R.\ T.\ Bhupatiraju,
+Z.\ Ashkar, C.\ W.\ Borst, K.\ Cochran. ``A multi-modal sensor dataset for continuous stress
+detection of nurses in a hospital.'' Dryad, 2021.
+DOI: \href{https://doi.org/10.5061/dryad.5hqbzkh6f}{10.5061/dryad.5hqbzkh6f}
+\end{itemize}
+
+\subsection{Hardware reference}
+Empatica E4 (device our datasets and target glove sensors emulate):
+\url{https://www.empatica.com/research/e4/}. The E4 is discontinued; NeuroShield's goal is a
+low-cost glove (MAX30102, ADS1115+electrodes, MLX90614, BNO055 on an ESP32-S3) that reproduces the
+same four E4-equivalent signals so E4-trained models transfer without retraining.
+
+% ============================================================================
+\section{Feature Pipeline (\code{features-v2})}
+
+Every 60-second window (30-second step) becomes a fixed 19-column feature row. Column order is
+frozen and version-pinned; a test guards against accidental drift. The model additionally consumes
+17 \emph{personalized} columns (suffix \code{\_p}) --- each physiological feature re-expressed as a
+deviation from that user's own quiet baseline --- for 36 model inputs in total.
+
+\begin{longtable}{P{0.20\linewidth}P{0.16\linewidth}P{0.55\linewidth}}
+\toprule
+\textbf{Group} & \textbf{Sensor} & \textbf{Features} \\
+\midrule
+Cardiac (pulse) & PPG / BVP & \code{hr\_mean\_bpm}, \code{ibi\_sd\_ms}, \code{ibi\_rmssd\_ms}, \code{ppg\_quality} \\
+Frequency-domain HRV & PPG / BVP & \code{hrv\_lf}, \code{hrv\_hf}, \code{hrv\_lf\_hf\_ratio} \\
+Electrodermal & EDA & \code{eda\_level}, \code{eda\_slope}, \code{eda\_response\_count}, \code{eda\_response\_mean\_amp} \\
+EDA tonic/phasic (cvxEDA) & EDA & \code{eda\_tonic\_mean}, \code{eda\_tonic\_slope}, \code{eda\_phasic\_mean} \\
+Thermal & TEMP & \code{temp\_mean\_c}, \code{temp\_slope\_c\_per\_min} \\
+Motion & ACC & \code{motion\_dynamic\_rms}, \code{motion\_dynamic\_p95} \\
+Coverage & all & \code{valid\_fraction} \\
+\bottomrule
+\end{longtable}
+
+Processing uses NeuroKit2 for PPG/EDA (including cvxEDA for the tonic/phasic split). At inference,
+each feature is z-scored against the user's own quiet baseline; the four Tier-1 axes are
+aggregations of these z-scores per group. The personal-baseline reference is defined in
+\emph{seconds} of signal (300s by default), not in a count of windows, so the reference the model
+was trained against and the calibration the live app performs cannot drift apart.
+
+% ============================================================================
+\section{Machine Learning Design}
+
+\subsection{Design decisions (evidence-based)}
+Published wrist-only WESAD studies report roughly 76--87\% balanced accuracy under
+leave-one-subject-out evaluation (the best comparable result, Siirtola 2019, is 0.874). The shipped
+multi-head model (\code{m3\_multihead\_personalized\_v1}) reaches \textbf{0.919} LOSO balanced
+accuracy on WESAD, confirming classical tabular models are appropriate and deep learning is
+unnecessary at this data scale. Reported figures of 0.93--0.99 in the literature almost always use
+k-fold or intra-subject splits, which let the same person appear in train and test; we do not use
+that evaluation, because it cannot answer ``will this work on a new nurse.''
+
+Two evidence-backed changes took Head A from 0.831 to 0.919: \code{features-v2} (frequency-domain
+HRV and cvxEDA tonic/phasic decomposition) and per-subject baseline personalization. A subsequent
+tuning sweep (window density, prediction smoothing, seed ensembling, calibration length, boosting
+hyperparameters) produced \emph{no} further gain that survives a paired per-subject significance
+test --- see \code{docs/wesad\_tuning\_negative\_result.md}. With 15 subjects the standard error on
+a LOSO estimate is $\pm$0.036, so 0.919 is the practical ceiling for this dataset and feature set.
+
+\begin{itemize}
+\item \textbf{Base learner:} gradient-boosted trees (\code{HistGradientBoostingClassifier} /
+XGBoost). Tree ensembles dominate the E4 stress literature and remain interpretable via feature
+importance / SHAP, preserving the explanation layer.
+\item \textbf{Calibration:} wrap the stress head in \code{CalibratedClassifierCV} (isotonic) so the
+0--100 index is a true probability, not a raw score.
+\item \textbf{Multi-output as separate heads}, not one shared network: with $\sim$1{,}200 pooled
+windows, independent calibrated heads are safer and more honest than joint deep multi-task models.
+\item \textbf{Evaluation:} grouped leave-one-subject-out, a dummy baseline, and a three-dataset
+scoreboard. Report real numbers per head, always.
+\end{itemize}
+
+\subsection{The heads}
+\begin{itemize}
+\item \textbf{Head A --- graded stress.} Calibrated GBM. Trained on pooled WESAD (baseline vs.\
+stress) + Stress-Predict (0/1), grouped by \code{(dataset, subject)}. Outputs a probability mapped
+to a 0--100 index and an ordinal calm/elevated/high level. Nurse Stress is held out.
+\item \textbf{Head B --- affect state.} GBM 4-class on WESAD baseline/stress/amusement/meditation.
+Distinguishes stress-arousal from positive-arousal (amusement) and calm (meditation) --- this uses
+the amusement and meditation labels the current pipeline discards.
+\end{itemize}
+
+\subsection{Artifacts and versioning}
+New artifacts are versioned (\code{m2\_multihead\_features\_v1}); the validated
+\code{m1\_wesad\_features\_v1} is never overwritten, enabling direct A/B comparison on the same
+held-out Nurse test set. Each artifact ships a manifest (feature version, column order, training
+datasets, code commit, metrics path, threshold policy, checksum); loading refuses a feature-version
+or checksum mismatch.
+
+% ============================================================================
+\section{Backend Design}
+
+FastAPI on ASGI, bound to \code{127.0.0.1}. WebSocket is the primary live channel (the literature
+is unanimous that request/response HTTP breaks down for live inference); REST covers control and
+summaries. The current batch engine evolves into an incremental sliding-window loop.
+
+\begin{longtable}{P{0.33\linewidth}P{0.60\linewidth}}
+\toprule
+\textbf{Endpoint} & \textbf{Purpose} \\
+\midrule
+\code{GET /api/v1/health} & Model / baseline / source readiness. \\
+\code{GET /api/v1/system} & Schema, feature, model versions; threshold policy. \\
+\code{POST /api/v1/session/start} & Start a synthetic / replay / (future) serial session. \\
+\code{POST /api/v1/calibration/start} & Build the personal baseline from a quiet segment. \\
+\code{GET /api/v1/status/latest} & Latest enriched status (index, level, affect, 4 axes, reasons). \\
+\code{GET /api/v1/history} & Recent status records. \\
+\code{GET /api/v1/session/summary} & \statusdone{} Time-in-state, episodes, recovery curve. \\
+\code{GET /api/v1/insights} & \statusdone{} Tier-4 context analytics + validation scoreboard. \\
+\code{WS /ws/v1/live} & Incremental live status stream. \\
+\bottomrule
+\end{longtable}
+
+Enriched status payload adds \code{stress\_index} (0--100), \code{level}, \code{affect\_state},
+\code{axes} (four sub-scores), \code{recovery\_trend}, and \code{time\_in\_state} to the existing
+record. All floats are NaN-sanitized for strict JSON. Typed error codes cover missing model,
+missing baseline, schema mismatch, stale source, and poor signal.
+
+% ============================================================================
+\section{Frontend Design (React / Next.js)}
+
+A Next.js app talking to the FastAPI backend, replacing the Streamlit prototype. Four views. Every
+incoming message is validated against the known schema version in the browser; an unknown version
+shows an error rather than rendering stale data.
+
+\begin{longtable}{P{0.20\linewidth}P{0.72\linewidth}}
+\toprule
+\textbf{View} & \textbf{Contents} \\
+\midrule
+Live & Big 0--100 index gauge, 4-axis radar, affect chip, current level, ranked reasons, quality row, motion-paused / poor-signal states. \\
+Session summary & Time-in-state donut, stress timeline, recovery curve, peak episodes, HRV-proxy trend. \\
+Trends & Multi-session / day-level view (the Nurse long-term angle), rolling baselines. \\
+Insights & Context-trigger vs.\ arousal table, 3-dataset validation scoreboard, all clearly labelled descriptive. \\
+\bottomrule
+\end{longtable}
+
+\begin{warningbox}{Verification limitation}
+The build environment has no browser automation, so the React frontend is verified by
+\code{npm run build} and API-contract checks only --- not by visual/pixel review. This is stated
+in the DoD for the frontend tasks and must be acknowledged in acceptance.
+\end{warningbox}
+
+% ============================================================================
+\section{Completed Foundation (T1--T20) --- DoD Status}
+
+The software-first MVP (see \code{tasks.tex}) is complete and green: 253 automated tests pass, the
+software acceptance gate passes, and the pipeline runs end-to-end on real WESAD data.
+
+\begin{longtable}{P{0.32\linewidth}P{0.12\linewidth}P{0.46\linewidth}}
+\toprule
+\textbf{Area (tasks)} & \textbf{Status} & \textbf{DoD evidence} \\
+\midrule
+Repo, scope, env, contract (T1--T3) & \statusdone & Structure, scope docs, \code{uv.lock}, \code{contracts.md}. \\
+WESAD load + bundle (T4--T5) & \statusdone & Loader + \code{SignalBundle}; smoke plot; tests pass. \\
+Features + labels (T6--T7) & \statusdone & \code{features-v2} fixed columns (19) + 17 personalized; label counts CSV. \\
+M1 train + artifact (T8--T9) & \statusdone & LOSO bal.\ acc.\ 0.831 / macro-F1 0.822 vs.\ dummy 0.500; versioned artifact + manifest. \\
+M3 multi-head (personalized) & \statusdone & Head A LOSO bal.\ acc.\ \textbf{0.919} vs.\ dummy 0.500; Head B (affect, 4-class) 0.616 vs.\ dummy 0.250. \\
+Synthetic + replay (T10--T11) & \statusdone & Committed fixture; parser with counters and raw error log. \\
+Baseline, gate, states, explain (T12--T15) & \statusdone & Personal z-score, motion/quality abstention, 9-state machine, feature-grounded reasons. \\
+Backend + dashboard (T16--T17) & \statusdone & 7 endpoints + WebSocket; Streamlit dashboard; AppTest checks. \\
+External validation (T18) & \statusdone & Stress-Predict: bal.\ acc.\ 0.541 / macro-F1 0.506; notes file. \\
+Acceptance + handoff (T19--T20) & \statusdone & \code{software\_acceptance.json} all pass; hardware handoff contract. \\
+\bottomrule
+\end{longtable}
+
+% ============================================================================
+\section{Next-Phase Tasks and Definition of Done}
+
+Each task below is self-contained and independently verifiable. \statusdone{} marks work already
+completed in this design cycle; \statusnext{} marks planned work.
+
+\begin{taskbox}{D0 --- Nurse Stress loader and provenance \statusdone}
+\textbf{Goal.} Make the third dataset loadable through the canonical \code{SignalBundle} without
+extracting 1.16\,GB to disk.
+\begin{donebox}
+\code{nurse\_stress\_loader.py} reads nested session zips in memory; survey events aligned via
+\code{America/New\_York}$\to$UTC; \code{nurse\_stress\_session\_to\_bundle}; \code{SOURCE.txt};
+12 tests pass (4 logic + 8 real-data). Verified: 15 nurses, 225 labelled events, samples land
+inside reported windows.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D1 --- Cross-dataset label harmonization \statusdone}
+\textbf{Goal.} One schema mapping every dataset's labels to a common space for training/eval.
+\textbf{Steps.} Map WESAD baseline/stress to Head A's 0/1 and its four affect classes to Head B;
+Stress-Predict 0/1 to Head A; Nurse 0/2 to held-out 0/1. Preserve \code{(dataset, subject)} group
+keys. Exclude ambiguous/unrated windows explicitly and count them.
+\begin{donebox}
+\code{features/harmonize.py}: \code{harmonize\_labels} + \code{pool\_harmonized} +
+\code{training\_view}; per-dataset exclusion counts; 16 tests pass including a no-group-leak
+assertion and per-dataset label-domain checks.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D2 --- Multi-output model (Head A + Head B) \statusdone}
+\textbf{Goal.} Train the graded stress head and the affect head; freeze a versioned artifact.
+\textbf{Steps.} Head A: calibrated gradient boosting on pooled WESAD+Stress-Predict, grouped LOSO,
+dummy baseline, 0--100 index + ordinal level. Head B: gradient boosting 4-class on WESAD, grouped
+LOSO. Save \code{m2\_multihead\_features\_v1.joblib} + manifest; loading enforces feature-version
+and checksum.
+\begin{donebox}
+\code{models/multihead.py}: calibrated (isotonic) HistGradientBoosting Head A + 4-class Head B;
+\code{predict} returns stress prob / 0--100 index / level / affect state; grouped-LOSO evaluation
+vs.\ dummy; versioned artifact with manifest + checksum; 13 tests pass (incl.\ calibration
+monotonicity and round-trip); \code{m1\_wesad\_features\_v1} untouched.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D3 --- Three-dataset validation scoreboard \statusdone}
+\textbf{Goal.} One comparable table of how the frozen model does on each dataset.
+\textbf{Steps.} WESAD (grouped LOSO), Stress-Predict (external), Nurse (held-out real-world) through
+the same predict path. Save \code{artifacts/metrics/validation\_scoreboard.json} and a markdown
+render.
+\begin{donebox}
+\code{models/scoreboard.py}: train-pool datasets scored by grouped-LOSO bucketed per dataset
+(never train-on-test), Nurse scored by the frozen model held out; JSON + markdown render with an
+honesty note; 11 tests pass.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D4 --- Four-axis physiological decomposition \statusdone}
+\textbf{Goal.} Turn per-group z-scores into four labelled arousal axes for the UI.
+\textbf{Steps.} \code{runtime/axes.py}: cardiac, electrodermal, thermal, movement sub-scores from
+baseline z-scores; bounded, NaN-safe, direction-aware.
+\begin{donebox}
+\code{runtime/axes.py}: signed arousal-direction aggregation (e.g.\ higher HR raises cardiac,
+higher HRV lowers it; cooler skin raises thermal); normal/elevated/high levels; NaN-safe; 14 tests
+pass. Payload wiring lands in D7.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D5 --- Nurse context analytics (Tier 4) \statusdone}
+\textbf{Goal.} Descriptive co-occurrence of survey triggers with high physiological arousal.
+\textbf{Steps.} \code{models/nurse\_insights.py}: join labelled high-arousal windows to survey
+context flags; produce a co-occurrence table. Explicitly descriptive, not predictive.
+\begin{donebox}
+\code{models/nurse\_insights.py} + \code{artifacts/metrics/nurse\_context\_insights.md}: contexts
+ranked by high-stress co-occurrence with counts and a high-vs-low lift (e.g.\ ``treating a COVID
+patient'' lift 2.06); descriptive-only disclaimer; 8 tests pass.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D6 --- Streaming engine (batch to sliding window) \statusdone}
+\textbf{Goal.} Replace whole-session batch processing with an incremental windowed loop.
+\textbf{Steps.} Refactor the engine to ingest events, maintain a rolling window, and emit one
+enriched status per step; keep replay/synthetic sources; preserve the existing engine API surface.
+\begin{donebox}
+\code{api/engine.py} refactored onto the multi-head model with a per-window \code{\_process\_window}
+and an \code{iter\_status} generator; the WebSocket streams one enriched record per window; the batch
+path consumes the same steps so the sequence is identical; API tests pass.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D7 --- Enriched payload and new endpoints \statusdone}
+\textbf{Goal.} Serve the full KPI set over REST + WebSocket.
+\textbf{Steps.} Extend the status record with index/level/affect/axes/recovery/time-in-state; add
+\code{GET /api/v1/session/summary} and \code{GET /api/v1/insights}; NaN-sanitize; typed errors.
+\begin{donebox}
+\code{StatusRecord} carries stress\_index/level/affect\_state/axes; \code{runtime/dynamics.py}
+(13 tests) powers \code{/session/summary}; \code{/insights} serves the scoreboard + nurse analytics;
+25 API tests pass including enriched-field and new-endpoint checks.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D8 --- React / Next.js scaffold and API client \statusdone}
+\textbf{Goal.} A Next.js app with a validated backend client, replacing Streamlit.
+\textbf{Steps.} Scaffold under \code{web/}; typed API client with schema-version validation and
+connection/error states; \code{npm run build} clean.
+\begin{donebox}
+\code{web/} Next.js app: \code{lib/api.ts} (typed client, schema-version validation,
+unreachable/validation error types), \code{lib/state.ts}, \code{app/page.tsx}, config. \textbf{Not
+built here: no Node/npm in this environment} -- delivered as reviewed source with
+\code{web/README.md} build instructions; the Streamlit dashboard remains the verified UI.
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D9 --- Live, Summary, Trends, Insights views \statusdone}
+\textbf{Goal.} The four dashboard views on real backend data.
+\textbf{Steps.} Live (gauge, radar, affect, reasons, quality); Session summary; Trends; Insights.
+Every view degrades gracefully on missing/stale data.
+\begin{donebox}
+Two frontends: (1) React \code{web/app/page.tsx} with all four views (source, unbuilt here);
+(2) the \textbf{verified} Streamlit \code{app/dashboard.py}, enriched to show index/level/affect/axes,
+session summary, and insights, exercised by \code{tests/test\_dashboard.py} (AppTest).
+\end{donebox}
+\end{taskbox}
+
+\begin{taskbox}{D10 --- Integration, acceptance, and docs \statusdone}
+\textbf{Goal.} Prove the redesigned system end-to-end and update the record.
+\textbf{Steps.} Extend \code{scripts/software\_acceptance.py} to cover the multi-head model and new
+endpoints; update \code{docs/datasets.md}, model cards, README; refresh the scoreboard.
+\begin{donebox}
+Acceptance script updated to the multi-head artifacts; real scoreboard + nurse insights regenerated;
+\code{docs/datasets.md} Nurse entry moved to used; multi-head model card added; full test suite green.
+\end{donebox}
+\end{taskbox}
+
+% ============================================================================
+\section{Risks and Mitigations}
+
+\begin{longtable}{P{0.34\linewidth}P{0.58\linewidth}}
+\toprule
+\textbf{Risk} & \textbf{Mitigation} \\
+\midrule
+Multi-output overfits on $\sim$1{,}200 windows & Separate calibrated heads, grouped LOSO, dummy baselines, honest reporting; keep v1 for comparison. \\
+Nurse self-report labels are noisy & Held-out validation and descriptive analytics only; never training signal. \\
+Frontend cannot be visually verified here & DoD limits verification to build + API contract; visual review deferred to the user. \\
+Survey timezone assumption wrong & Empirically cross-referenced (\code{America/New\_York}); documented and testable. \\
+Scope creep across four tiers & Tiers are independent; Tier 1 + Head A alone already ship a materially better product. \\
+\bottomrule
+\end{longtable}
+
+% ============================================================================
+\section{References}
+
+\subsection{Datasets}
+\begin{itemize}
+\item WESAD: \url{https://archive.ics.uci.edu/dataset/465/wesad+wearable+stress+and+affect+detection} --- DOI \href{https://doi.org/10.1145/3242969.3242985}{10.1145/3242969.3242985}
+\item Stress-Predict: \url{https://github.com/italha-d/Stress-Predict-Dataset} --- DOI \href{https://doi.org/10.3390/s22218135}{10.3390/s22218135}
+\item Nurse Stress: \url{https://datadryad.org/dataset/doi:10.5061/dryad.5hqbzkh6f} --- DOI \href{https://doi.org/10.5061/dryad.5hqbzkh6f}{10.5061/dryad.5hqbzkh6f}
+\item Empatica E4 reference: \url{https://www.empatica.com/research/e4/}
+\end{itemize}
+
+\subsection{Methods and prior work}
+\begin{itemize}
+\item Stress detection with Empatica E4 and ML (MDPI Sensors, 2023): \url{https://www.mdpi.com/1424-8220/23/7/3565}
+\item Analysing stress detection models on consumer-grade wearables (arXiv): \url{https://arxiv.org/pdf/2203.09669}
+\item Interpretable ML for multimodal stress detection (ScienceDirect): \url{https://www.sciencedirect.com/science/article/pii/S1532046423000205}
+\item Multi-task learning for affect analysis (arXiv): \url{https://arxiv.org/html/2407.00679v1}
+\item ML for predicting stress episodes from wearables --- systematic review (ScienceDirect): \url{https://www.sciencedirect.com/science/article/pii/S0010482525015197}
+\item FastAPI + WebSockets real-time inference: \url{https://medium.com/@kaushalsinh73/fastapi-websockets-real-time-ai-inference-at-scale-699d3c019339}
+\end{itemize}
+
+\subsection{Internal documents}
+\begin{itemize}
+\item \code{docs/contracts.md} --- raw event schema (\code{neuroshield.hw.v1})
+\item \code{docs/datasets.md} --- dataset status and skip decisions
+\item \code{docs/model\_card\_m1.md} --- M1 model card
+\item \code{docs/build\_roadmap.md} --- phased build roadmap
+\item \code{docs/software\_acceptance.md} --- acceptance procedure
+\item \code{docs/hardware\_handoff.md} --- hardware handoff contract
+\item \code{docs/no\_clinical\_claims.md} --- honesty boundary
+\end{itemize}
+
+\end{document}

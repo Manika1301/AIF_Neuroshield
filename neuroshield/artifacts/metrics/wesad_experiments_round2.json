@@ -1,0 +1,52 @@
+{
+  "results":[
+    {
+      "config":"B. dense (round-1 winner)",
+      "balanced_accuracy":0.9265525007,
+      "macro_f1":0.9345779307,
+      "n_windows":2755
+    },
+    {
+      "config":"I. dense + 5-seed ensemble",
+      "balanced_accuracy":0.9265525007,
+      "macro_f1":0.9345779307,
+      "n_windows":2755
+    },
+    {
+      "config":"J. dense + class_weight balanced",
+      "balanced_accuracy":0.9209230397,
+      "macro_f1":0.9249061679,
+      "n_windows":2755
+    },
+    {
+      "config":"K. dense + in-fold tuned threshold",
+      "balanced_accuracy":0.9254187819,
+      "macro_f1":0.9239299496,
+      "n_windows":2755
+    },
+    {
+      "config":"L. dense + slow\/long boosting",
+      "balanced_accuracy":0.9195191021,
+      "macro_f1":0.9253476788,
+      "n_windows":2755
+    },
+    {
+      "config":"M. dense + unlimited depth",
+      "balanced_accuracy":0.9302612952,
+      "macro_f1":0.9327197014,
+      "n_windows":2755
+    },
+    {
+      "config":"N. dense + smooth k=2",
+      "balanced_accuracy":0.9245404283,
+      "macro_f1":0.9329057008,
+      "n_windows":2755
+    },
+    {
+      "config":"O. dense + 5-seed + stronger L2",
+      "balanced_accuracy":0.9396958126,
+      "macro_f1":0.9457204513,
+      "n_windows":2755
+    }
+  ]
+}

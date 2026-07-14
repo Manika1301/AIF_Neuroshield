@@ -1,0 +1,30 @@
+# Datasets: never commit raw or downloaded data
+data/raw/
+data/external/
+data/interim/
+data/doi_*/
+
+# Trained model artifacts (large binary files)
+artifacts/models/*.joblib
+
+# Regenerable feature cache used by the tuning experiments
+artifacts/cache/
+
+# Local session logs
+*.session.log
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Node / dashboard
+node_modules/
+.next/
+
+# OS
+.DS_Store
