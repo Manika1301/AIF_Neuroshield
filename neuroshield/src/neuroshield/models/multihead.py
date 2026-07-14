@@ -19,6 +19,7 @@ baseline (see ``evaluate_head_a`` / ``evaluate_head_b``). The frozen artifact
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,9 +46,16 @@ from neuroshield.models.artifact import (
 
 MODEL_VERSION = "m3_multihead_personalized_v1"
 
-DEFAULT_MODEL_PATH = Path("artifacts/models/m3_multihead_personalized_v1.joblib")
-DEFAULT_MANIFEST_PATH = Path("artifacts/models/m3_multihead_personalized_v1_manifest.json")
-DEFAULT_METRICS_PATH = Path("artifacts/metrics/m3_multihead_loso.json")
+# Resolved against the package root, not the process CWD. A CWD-relative default meant that
+# launching the server from anywhere but the repo root -- e.g. one directory up, which is the
+# natural place to run `uvicorn neuroshield.api.main:app` from -- started cleanly and then failed
+# every prediction with "no model loaded". Overridable with NEUROSHIELD_ARTIFACTS_DIR.
+_PACKAGE_ROOT = Path(__file__).resolve().parents[3]
+ARTIFACTS_DIR = Path(os.environ.get("NEUROSHIELD_ARTIFACTS_DIR", _PACKAGE_ROOT / "artifacts"))
+
+DEFAULT_MODEL_PATH = ARTIFACTS_DIR / "models" / "m3_multihead_personalized_v1.joblib"
+DEFAULT_MANIFEST_PATH = ARTIFACTS_DIR / "models" / "m3_multihead_personalized_v1_manifest.json"
+DEFAULT_METRICS_PATH = ARTIFACTS_DIR / "metrics" / "m3_multihead_loso.json"
 
 AFFECT_CODE_TO_NAME = {code: name for name, code in AFFECT_CLASSES.items()}
 

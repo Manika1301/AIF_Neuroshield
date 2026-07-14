@@ -46,6 +46,21 @@ IMPLEMENTED_SOURCE_MODES = ("synthetic", "replay")
 
 VALUE_FEATURES = ("hr_mean_bpm", "eda_level", "temp_mean_c", "ibi_rmssd_ms")
 
+_PACKAGE_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _resolve_data_path(path: Path) -> Path:
+    """Accept a relative replay path regardless of where the server was launched from.
+
+    Clients send repo-relative paths like ``data/fixtures/calm_motion_stress.ndjson``. Resolving
+    those against the process CWD means the same request works or 404s depending on which directory
+    someone happened to start uvicorn in -- so fall back to the package root before giving up.
+    """
+    if path.is_absolute() or path.exists():
+        return path
+    candidate = _PACKAGE_ROOT / path
+    return candidate if candidate.exists() else path
+
 
 class EngineError(Exception):
     error_code: str = "engine_error"
@@ -145,6 +160,7 @@ class RuntimeEngine:
         else:
             if replay_path is None:
                 raise EngineError("replay_path is required for source_mode='replay'")
+            replay_path = _resolve_data_path(replay_path)
             replay = ReplaySource(replay_path, speed=None)
             events = list(replay)
             if replay.counters.valid_events == 0:

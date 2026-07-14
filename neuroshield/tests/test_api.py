@@ -435,3 +435,31 @@ class TestMissingModelErrors:
 def test_run_binds_to_localhost_by_default():
     sig = inspect.signature(run)
     assert sig.parameters["host"].default == "127.0.0.1"
+
+
+class TestWorkingDirectoryIndependence:
+    """Defaults must not depend on which directory the server was launched from.
+
+    Regression: model and artifact paths were CWD-relative, so `uvicorn neuroshield.api.main:app`
+    run one directory up -- the natural place to run it from -- started cleanly and then failed
+    every prediction with "no model loaded".
+    """
+
+    def test_model_and_artifact_paths_are_absolute(self):
+        from neuroshield.api.main import NURSE_INSIGHTS_PATH, SCOREBOARD_PATH
+        from neuroshield.models.multihead import DEFAULT_MANIFEST_PATH, DEFAULT_MODEL_PATH
+
+        for path in (DEFAULT_MODEL_PATH, DEFAULT_MANIFEST_PATH, SCOREBOARD_PATH, NURSE_INSIGHTS_PATH):
+            assert path.is_absolute(), f"{path} is CWD-relative; it must resolve from any directory"
+
+    def test_relative_replay_path_resolves_from_any_cwd(self, monkeypatch, tmp_path, engine):
+        """A repo-relative replay path must work even when the process CWD is somewhere else."""
+        from neuroshield.api.engine import _PACKAGE_ROOT
+
+        fixture = Path("data/fixtures/calm_motion_stress.ndjson")
+        if not (_PACKAGE_ROOT / fixture).exists():
+            pytest.skip("committed replay fixture not present")
+
+        monkeypatch.chdir(tmp_path)  # a CWD where "data/fixtures/..." does not exist
+        engine.start_session(source_mode="replay", session_id="cwd-test", replay_path=fixture)
+        assert engine.source_connected
