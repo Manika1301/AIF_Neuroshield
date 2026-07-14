@@ -11,6 +11,7 @@ environment; this file was smoke-tested by booting the real server, see T17 note
 from __future__ import annotations
 
 import os
+import time
 
 import pandas as pd
 import streamlit as st
@@ -31,6 +32,19 @@ from view_state import (
     latest_values_row,
     quality_row,
 )
+
+SESSION_WAIT_TIMEOUT_S = 120.0
+
+
+def _await_session(client: BackendClient, timeout_s: float = SESSION_WAIT_TIMEOUT_S) -> dict:
+    """Poll until the backend has streamed every window of the session (or we give up waiting)."""
+    deadline = time.monotonic() + timeout_s
+    progress = client.session_progress()
+    while not progress["complete"] and time.monotonic() < deadline:
+        time.sleep(0.15)
+        progress = client.session_progress()
+    return progress
+
 
 st.set_page_config(page_title="NeuroShield", page_icon="🧠", layout="wide")
 
@@ -95,9 +109,16 @@ with st.sidebar:
     if st.button("Start calibration"):
         try:
             result = client.start_calibration(quiet_seconds)
+            # Calibration now returns as soon as the baseline exists; the backend streams the
+            # session's windows in the background. Streamlit has no push channel, so wait for the
+            # stream to finish before rendering -- otherwise the first paint shows a half-empty
+            # session that only fills in if the user happens to hit Refresh.
+            with st.spinner("Processing session windows..."):
+                progress = _await_session(client)
             st.success(
                 f"Calibrated on {result['n_accepted_windows']} windows "
-                f"({result['accepted_seconds']:.0f}s of quiet data)."
+                f"({result['accepted_seconds']:.0f}s of quiet data). "
+                f"Streamed {progress['n_windows']} windows."
             )
         except (BackendUnreachableError, BackendValidationError) as exc:
             st.error(str(exc))

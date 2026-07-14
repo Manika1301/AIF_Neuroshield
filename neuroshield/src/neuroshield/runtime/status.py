@@ -47,6 +47,7 @@ class StatusRecord:
     stress_index: int | None = None  # 0-100 calibrated graded stress
     level: str | None = None  # calm / elevated / high
     affect_state: str | None = None  # baseline / stress / amusement / meditation
+    affect_confidence: float | None = None  # Head B max class probability, 0-1
     axes: dict = field(default_factory=dict)  # cardiac / electrodermal / thermal / movement
 
     def to_dict(self) -> dict:

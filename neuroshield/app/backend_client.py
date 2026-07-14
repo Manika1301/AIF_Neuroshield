@@ -92,7 +92,14 @@ class BackendClient:
         replay_path: str | None = None,
         duration_sec: float = 600.0,
         seed: int = 0,
+        speed: float = 0.0,
     ) -> dict:
+        """Start a session. ``speed`` paces the live feed; 0 means "as fast as it computes".
+
+        Streamlit polls and has no auto-refresh timer, so pacing here would just mean the user
+        clicks Refresh watching windows dribble in. The browser dashboard, which is *pushed* to over
+        the WebSocket, is where pacing earns its keep.
+        """
         return self._request(
             "POST",
             "/api/v1/session/start",
@@ -102,6 +109,7 @@ class BackendClient:
                 "replay_path": replay_path,
                 "duration_sec": duration_sec,
                 "seed": seed,
+                "speed": speed,
             },
         )
 
@@ -124,6 +132,11 @@ class BackendClient:
         body = self._request("GET", "/api/v1/history", params=params)
         self._require_fields(body, ("records",), "history")
         return body["records"]
+
+    def session_progress(self) -> dict:
+        body = self._request("GET", "/api/v1/session/progress")
+        self._require_fields(body, ("n_windows", "complete", "calibrated"), "progress")
+        return body
 
     def session_summary(self) -> dict:
         body = self._request("GET", "/api/v1/session/summary")

@@ -89,3 +89,33 @@ class TestDashboardWithLiveBackend:
 
         assert not at.exception
         assert len(at.error) == 0  # a reachable, healthy backend must not show an error banner
+
+    def test_full_session_renders_populated_status(self, monkeypatch, live_backend_url):
+        """Drive the real buttons and assert the page actually fills with data.
+
+        Regression guard for the streaming refactor: calibration no longer returns a completed
+        session, so a dashboard that renders immediately would paint an empty history. The page must
+        wait for the stream and then show real windows. "Doesn't crash" would not catch that.
+        """
+        monkeypatch.setenv("NEUROSHIELD_API_URL", live_backend_url)
+        at = AppTest.from_file(DASHBOARD_PATH)
+        at.run(timeout=30)
+
+        at.selectbox[0].set_value("synthetic")
+        at.run(timeout=30)
+
+        next(b for b in at.button if "Start session" in b.label).click().run(timeout=60)
+        assert not at.exception
+        assert len(at.error) == 0, [e.value for e in at.error]
+
+        next(b for b in at.button if "Start calibration" in b.label).click().run(timeout=180)
+        assert not at.exception, at.exception
+        assert len(at.error) == 0, [e.value for e in at.error]
+
+        # The session streamed, and the page says so.
+        assert any("Streamed" in s.value for s in at.success), [s.value for s in at.success]
+
+        # Real content, not an empty shell: the history table has windows in it.
+        history = [df.value for df in at.dataframe if "state" in getattr(df.value, "columns", [])]
+        assert history, "no history dataframe rendered"
+        assert len(history[-1]) > 1, "history rendered but contains no streamed windows"

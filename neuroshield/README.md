@@ -67,16 +67,31 @@ uv run python scripts/software_acceptance.py
 # 5. Start the backend (binds to 127.0.0.1:8000)
 uv run python -m neuroshield.api.main
 
-# 6. In another terminal, start a replay session against the committed fixture and calibrate
+# 6. In another terminal, start a replay session against the committed fixture and calibrate.
+#    `speed` paces the live feed: 10x streams one 30s-step window every 3 seconds.
 curl -X POST http://127.0.0.1:8000/api/v1/session/start \
   -H "Content-Type: application/json" \
-  -d '{"source_mode":"replay","replay_path":"data/fixtures/calm_motion_stress.ndjson","session_id":"demo-001"}'
+  -d '{"source_mode":"replay","replay_path":"data/fixtures/calm_motion_stress.ndjson","session_id":"demo-001","speed":10}'
 curl -X POST http://127.0.0.1:8000/api/v1/calibration/start \
   -H "Content-Type: application/json" -d '{"quiet_seconds":150}'
 
 # 7. In a third terminal, start the dashboard and open the printed local URL
 uv run streamlit run app/dashboard.py
 ```
+
+### How the session streams
+
+`POST /calibration/start` returns as soon as the personal baseline exists. It does **not** process
+the session; the windows are then produced one at a time and pushed to any connected client:
+
+| Endpoint | Purpose |
+|---|---|
+| `WS /ws/v1/live` | One `status` message per 60s window as it is computed, then `session_complete`. Stays open; replays the backlog on reconnect. |
+| `GET /api/v1/session/progress` | `{n_windows, complete, streaming}` — how far the session has got. |
+| `GET /api/v1/history` | The same records, for clients that poll instead of subscribe. |
+
+Both frontends read the same session, so they cannot disagree: the browser dashboard subscribes to
+the socket, Streamlit polls REST.
 
 The backend now serves the **multi-head model** (`m3_multihead_personalized_v1`): a 0-100 stress
 index + calm/elevated/high level (Head A) and a baseline/stress/amusement/meditation affect state
@@ -95,11 +110,19 @@ neuroshield.models.artifact`) is retained for comparison and is never overwritte
 
 ### Frontends
 
-- **Streamlit** (`app/dashboard.py`) -- the verified UI, exercised by the test suite. Shows the
+- **Streamlit** (`app/dashboard.py`) — the **verified** UI. The test suite drives it end-to-end
+  against a real backend (start session → calibrate → assert the streamed windows render). Shows the
   index, level, affect, four axes, session summary, and research insights.
-- **React / Next.js** (`web/`) -- the richer frontend from the design doc. Delivered as reviewed
-  source; see `web/README.md`. It was **not** built in this environment (no Node/npm), so run
-  `npm install && npm run build` before relying on it.
+- **React / Next.js** (`web/`) — the richer browser dashboard, fed by the WebSocket. Delivered as
+  **reviewed but never-compiled source**: this environment has no Node/npm, so not one line of it has
+  been type-checked or run. Run `cd web && npm install && npm run typecheck` first, and expect to fix
+  compiler errors before demoing. See `web/README.md`.
 
-See `docs/design_doc.tex` for the full end-to-end design and `docs/software_acceptance.md` for the
-acceptance procedure.
+### What the model predicts
+
+`docs/prediction_spec.md` is the definitive contract — all 36 input features, every output field
+(stress index, level, affect + confidence, the four axes, the nine states, abstention rules), and
+what those outputs may and may not claim. Read it before building anything on top of the API.
+
+See `design_doc.tex` for the end-to-end design, `docs/model_card_m3_multihead.md` for the model, and
+`docs/software_acceptance.md` for the acceptance procedure.

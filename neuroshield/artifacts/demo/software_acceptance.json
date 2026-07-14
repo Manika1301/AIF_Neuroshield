@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-07-11T18:49:04.983741+00:00",
-  "git_commit": "e7d701592ab3a2ae335d94ad87d485899bf08812",
+  "generated_at": "2026-07-14T14:10:50.630542+00:00",
+  "git_commit": "1f70c96256b2cab1c6440e155399a172c57cb5e6",
   "package_versions": {
     "numpy": "2.2.6",
     "pandas": "2.3.3",
@@ -23,9 +23,9 @@
   ],
   "files_produced_or_verified": [
     "data/fixtures/calm_motion_stress.ndjson",
-    "artifacts/models/m2_multihead_features_v1.joblib",
-    "artifacts/models/m2_multihead_features_v1_manifest.json",
-    "artifacts/metrics/m2_multihead_loso.json",
+    "artifacts/models/m3_multihead_personalized_v1.joblib",
+    "artifacts/models/m3_multihead_personalized_v1_manifest.json",
+    "artifacts/metrics/m3_multihead_loso.json",
     "artifacts/metrics/validation_scoreboard.json",
     "artifacts/metrics/nurse_context_insights.md",
     "artifacts/models/m1_wesad_features_v1.joblib",
@@ -36,7 +36,7 @@
     {
       "name": "full_test_suite",
       "status": "pass",
-      "detail": "  /Users/manikajhaveri/Downloads/ai_neuroshield/AIF_Neuroshield/neuroshield/.venv/lib/python3.10/site-packages/numpy/_core/_methods.py:145: RuntimeWarning: invalid value encountered in scalar divide\n    ret = ret.dtype.type(ret / rcount)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n331 passed, 809 warnings in 223.99s (0:03:43)"
+      "detail": "  /Users/manikajhaveri/Downloads/ai_neuroshield/AIF_Neuroshield/neuroshield/.venv/lib/python3.10/site-packages/numpy/_core/_methods.py:145: RuntimeWarning: invalid value encountered in scalar divide\n    ret = ret.dtype.type(ret / rcount)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n353 passed, 857 warnings in 156.68s (0:02:36)"
     },
     {
       "name": "replay_fixture_present",
@@ -64,6 +64,11 @@
       "detail": "n_accepted_windows=3"
     },
     {
+      "name": "session_streams_to_completion",
+      "status": "pass",
+      "detail": "n_windows=18"
+    },
+    {
       "name": "history_non_empty",
       "status": "pass",
       "detail": "18 records"
@@ -71,17 +76,17 @@
     {
       "name": "sequence_includes_green",
       "status": "pass",
-      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+      "detail": "deduped=['green', 'red', 'motion_paused', 'red', 'poor_signal']"
     },
     {
       "name": "sequence_includes_motion_paused",
       "status": "pass",
-      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+      "detail": "deduped=['green', 'red', 'motion_paused', 'red', 'poor_signal']"
     },
     {
       "name": "sequence_includes_poor_signal",
       "status": "pass",
-      "detail": "deduped=['green', 'motion_paused', 'green', 'poor_signal']"
+      "detail": "deduped=['green', 'red', 'motion_paused', 'red', 'poor_signal']"
     },
     {
       "name": "enriched_payload_present",
@@ -91,7 +96,7 @@
     {
       "name": "color_state_machine_reaches_amber_and_red",
       "status": "pass",
-      "detail": "amber='amber' red='red' (note: synthetic fixture itself stayed green under the real model; deduped fixture states=['green', 'motion_paused', 'green', 'poor_signal'])"
+      "detail": "amber='amber' red='red' (note: synthetic fixture itself stayed green under the real model; deduped fixture states=['green', 'red', 'motion_paused', 'red', 'poor_signal'])"
     },
     {
       "name": "unreachable_after_stop",
@@ -106,7 +111,7 @@
     {
       "name": "reconnect_and_new_session_works",
       "status": "pass",
-      "detail": "state='poor_signal'"
+      "detail": "state='red'"
     },
     {
       "name": "stale_state_detected",

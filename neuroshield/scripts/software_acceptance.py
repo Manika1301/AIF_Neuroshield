@@ -33,6 +33,16 @@ PORT = 8733
 checks: list[dict] = []
 
 
+def _await_session_complete(client, timeout_s: float = 120.0) -> dict:
+    """Block until the backend has streamed every window of the current session."""
+    deadline = time.monotonic() + timeout_s
+    progress = client.session_progress()
+    while not progress["complete"] and time.monotonic() < deadline:
+        time.sleep(0.1)
+        progress = client.session_progress()
+    return progress
+
+
 def record(name: str, passed: bool, detail: str) -> None:
     checks.append({"name": name, "status": "pass" if passed else "fail", "detail": detail})
     print(f"[{'PASS' if passed else 'FAIL'}] {name}: {detail}")
@@ -134,6 +144,12 @@ def main() -> int:
 
         calib = client.start_calibration(quiet_seconds=150.0)
         record("calibration_succeeds", calib["n_accepted_windows"] > 0, f"n_accepted_windows={calib['n_accepted_windows']}")
+
+        # Calibration returns as soon as the baseline exists; the session's windows then stream in
+        # the background. Reading history immediately would race the player and see a partial
+        # session, so wait for it to finish before asserting on the state sequence.
+        progress = _await_session_complete(client)
+        record("session_streams_to_completion", progress["complete"], f"n_windows={progress['n_windows']}")
 
         records = client.history()
         states = [r["state"] for r in records]

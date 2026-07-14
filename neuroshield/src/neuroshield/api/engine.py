@@ -1,16 +1,20 @@
 """Session engine: wires source -> features -> baseline -> quality gate -> multi-head model ->
 status -> explanations -> enriched payload.
 
-D6/D7 refactor: the engine now drives the multi-head model (Head A graded stress + Head B affect)
-and enriches every window into a full KPI record -- stress index (0-100), level, affect state, and
-the four physiological axes -- in addition to the traffic-light state. Processing is a per-window
-step (``_process_window``); ``iter_status`` exposes it as a generator so the WebSocket can stream
-one enriched record per window while the batch path (``run_calibration``) consumes the same steps
-to build ``status_history``. The sequence is identical either way.
+The engine drives the multi-head model (Head A graded stress + Head B affect) and enriches every
+window into a full KPI record -- stress index (0-100), level, affect state + confidence, and the
+four physiological axes -- in addition to the traffic-light state.
 
-Replay/synthetic sources are fully available up front, so calibration processes the remainder
-eagerly; a future hardware source would feed ``_process_window`` incrementally as samples arrive,
-with everything downstream unchanged.
+Windows are produced **incrementally**. ``run_calibration`` computes the personal baseline and then
+arms a lazy generator; ``advance()`` pulls exactly one window at a time, appending it to
+``status_history``. Nothing processes the session ahead of the consumer. The ``SessionPlayer``
+(``api/streaming.py``) drives ``advance()`` on a timer and pushes each record over the WebSocket, so
+the dashboard sees windows arrive the way a real wearable would deliver them; ``drain()`` is the
+same sequence with no pacing, for tests and offline use.
+
+This matters beyond aesthetics: calibration previously computed the entire session in one blocking
+call, so "live" status was a replay of an already-finished computation and the WebSocket had nothing
+to stream. Hardware will feed ``_process_window`` as samples arrive, and that path now exists.
 """
 
 from __future__ import annotations
@@ -95,6 +99,12 @@ class RuntimeEngine:
         self.baseline: dict | None = None
         self.status_history: list[StatusRecord] = []
         self.state_machine: StatusStateMachine | None = None
+        self._windows = None  # lazy per-window generator, armed by run_calibration
+        self._complete = False
+        # The SessionPlayer streaming this engine's session, set by the API layer. It lives on the
+        # engine (not in a module global) so that swapping the engine -- which the tests do, and a
+        # multi-session server would -- cannot leave a stale player attached to the wrong session.
+        self.player = None
 
     def _load_model(self) -> None:
         try:
@@ -148,6 +158,8 @@ class RuntimeEngine:
         self._events = events
         self.baseline = None
         self.status_history = []
+        self._windows = None
+        self._complete = False
         self.state_machine = StatusStateMachine(
             threshold_policy=self.manifest["threshold_policy"] if self.manifest else None,
             hysteresis_windows=self.hysteresis_windows,
@@ -156,6 +168,13 @@ class RuntimeEngine:
         )
 
     def run_calibration(self, quiet_seconds: float) -> dict:
+        """Compute the personal baseline and arm the window feed. Does NOT process the session.
+
+        Calibration used to drain the whole session here, which made "live" status a replay of an
+        already-finished computation. It now returns as soon as the baseline exists, and the windows
+        are pulled one at a time by ``advance()`` -- so a consumer (the SessionPlayer behind the
+        WebSocket) sees them arrive incrementally, which is what a real wearable feed does.
+        """
         if not self.model_loaded:
             raise MissingModelError(self.model_error or "no multi-head model artifact is loaded")
         if self.session_id is None:
@@ -169,8 +188,40 @@ class RuntimeEngine:
         except ValueError as exc:
             raise MissingBaselineError(f"calibration failed: {exc}") from exc
 
-        self.status_history = list(self.iter_status())
+        self.status_history = []
+        self._windows = self.iter_status()
+        self._complete = False
         return self.baseline
+
+    def advance(self) -> StatusRecord | None:
+        """Process exactly one window. Returns the record, or None once the session is exhausted."""
+        if self._windows is None:
+            raise MissingBaselineError("no calibrated session to advance; call /calibration/start first")
+        try:
+            record = next(self._windows)
+        except StopIteration:
+            self._complete = True
+            return None
+        self.status_history.append(record)
+        return record
+
+    def drain(self) -> list[StatusRecord]:
+        """Process every remaining window at once (no pacing). The batch path, for tests/offline use."""
+        while self.advance() is not None:
+            pass
+        return self.status_history
+
+    @property
+    def is_complete(self) -> bool:
+        return self._complete
+
+    def progress(self) -> dict:
+        return {
+            "session_id": self.session_id,
+            "n_windows": len(self.status_history),
+            "complete": self._complete,
+            "calibrated": self.baseline is not None,
+        }
 
     def iter_status(self):
         """Yield one enriched StatusRecord per feature window (the streaming step)."""
@@ -218,6 +269,8 @@ class RuntimeEngine:
             record.stress_index = int(prediction["stress_index"])
             record.level = str(prediction["level"])
             record.affect_state = None if prediction["affect_state"] is None else str(prediction["affect_state"])
+            confidence = prediction["affect_confidence"]
+            record.affect_confidence = None if pd.isna(confidence) else float(confidence)
         return record
 
     def latest_status(self) -> StatusRecord:

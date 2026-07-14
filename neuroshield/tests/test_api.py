@@ -1,6 +1,8 @@
 import inspect
 from pathlib import Path
 
+import time
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,6 +17,23 @@ from neuroshield.models.multihead import save_multihead_artifact, train_final_mu
 from neuroshield.runtime.quality_gate import MOTION_PAUSED, POOR_SIGNAL
 from neuroshield.runtime.status import CALIBRATING, WAITING
 from neuroshield.runtime.synthetic_source import generate_events, write_ndjson
+
+
+
+def finish_session(client, timeout_s: float = 30.0):
+    """Block until the background SessionPlayer has streamed every window.
+
+    Calibration no longer computes the whole session -- windows now arrive incrementally from the
+    player. Polling /session/progress also yields to the event loop, which is what lets the player's
+    background task actually run under TestClient's portal.
+    """
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        progress = client.get("/api/v1/session/progress").json()
+        if progress["complete"]:
+            return progress
+        time.sleep(0.02)
+    raise AssertionError(f"session did not finish within {timeout_s}s: {progress}")
 
 
 def _wesad_like(n_subjects=4, n_per_class=20, seed=0) -> pd.DataFrame:
@@ -117,7 +136,8 @@ class TestSessionStart:
             json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "session_id": "sess-1"},
         )
         assert resp.status_code == 200
-        assert resp.json() == {"session_id": "sess-1", "source_mode": "replay"}
+        assert resp.json()["session_id"] == "sess-1"
+        assert resp.json()["source_mode"] == "replay"
 
     def test_synthetic_session_starts_successfully(self, client):
         resp = client.post(
@@ -157,7 +177,7 @@ class TestStatusBeforeCalibration:
 
     def test_calibrating_after_session_before_calibration(self, client, replay_fixture_path):
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         resp = client.get("/api/v1/status/latest")
         assert resp.json()["state"] == CALIBRATING
@@ -167,11 +187,18 @@ class TestCalibrationAndFullFlow:
     def test_full_replay_flow_produces_expected_states(self, client, replay_fixture_path):
         client.post(
             "/api/v1/session/start",
-            json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "session_id": "full-flow"},
+            json={
+                "source_mode": "replay",
+                "replay_path": str(replay_fixture_path),
+                "session_id": "full-flow",
+                "speed": 0,
+            },
         )
         calib = client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
         assert calib.status_code == 200
         assert calib.json()["n_accepted_windows"] > 0
+        assert calib.json()["streaming"] is True
+        finish_session(client)
 
         latest = client.get("/api/v1/status/latest")
         assert latest.json()["state"] not in (WAITING, CALIBRATING)
@@ -189,9 +216,10 @@ class TestCalibrationAndFullFlow:
 
     def test_enriched_fields_present_on_scored_windows(self, client, replay_fixture_path):
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+        finish_session(client)
         records = client.get("/api/v1/history").json()["records"]
         scored = [r for r in records if r["stress_index"] is not None]
         assert scored, "expected at least one scored window with a stress index"
@@ -199,12 +227,15 @@ class TestCalibrationAndFullFlow:
             assert 0 <= r["stress_index"] <= 100
             assert r["level"] in ("calm", "elevated", "high")
             assert set(r["axes"].keys()) == {"cardiac", "electrodermal", "thermal", "movement"}
+            assert r["affect_state"] in ("baseline", "stress", "amusement", "meditation")
+            assert 0.0 <= r["affect_confidence"] <= 1.0
 
     def test_session_summary_endpoint(self, client, replay_fixture_path):
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+        finish_session(client)
         summary = client.get("/api/v1/session/summary").json()
         for key in ("time_in_state", "recovery_trend", "episodes", "index_summary"):
             assert key in summary
@@ -221,7 +252,7 @@ class TestCalibrationAndFullFlow:
         assert resp.json()["error_code"] == "session_not_started"
 
     def test_calibration_with_insufficient_quiet_data_is_missing_baseline(self, client):
-        client.post("/api/v1/session/start", json={"source_mode": "synthetic", "duration_sec": 5.0, "seed": 2})
+        client.post("/api/v1/session/start", json={"source_mode": "synthetic", "duration_sec": 5.0, "seed": 2, "speed": 0})
         resp = client.post("/api/v1/calibration/start", json={"quiet_seconds": 150.0})
         assert resp.status_code == 409
         assert resp.json()["error_code"] == "missing_baseline"
@@ -230,16 +261,17 @@ class TestCalibrationAndFullFlow:
 class TestHistoryEndpoint:
     def test_empty_before_calibration(self, client, replay_fixture_path):
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         resp = client.get("/api/v1/history")
         assert resp.json()["records"] == []
 
     def test_limit_returns_only_last_n(self, client, replay_fixture_path):
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+        finish_session(client)
         full = client.get("/api/v1/history").json()["records"]
         limited = client.get("/api/v1/history", params={"limit": 3}).json()["records"]
         assert len(limited) == 3
@@ -247,27 +279,128 @@ class TestHistoryEndpoint:
 
 
 class TestWebSocket:
-    def test_streams_full_history_after_calibration(self, client, replay_fixture_path):
+    """The socket is a live feed, not a history dump: it must stay open and push as windows land."""
+
+    def test_streams_windows_live_and_terminates_with_session_complete(self, client, replay_fixture_path):
+        """Connect BEFORE calibration, then assert windows arrive over the socket as they compute.
+
+        This is the behavior the old implementation could not produce: it dumped whatever history
+        already existed and closed the socket immediately.
+        """
         client.post(
-            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path)}
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
+        )
+        with client.websocket_connect("/ws/v1/live") as ws:
+            # The socket opens with an immediate snapshot of the current (pre-calibration) state.
+            snapshot = ws.receive_json()
+            assert snapshot["data"]["state"] == CALIBRATING
+
+            client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+
+            statuses, completed = [], False
+            for _ in range(500):  # generous bound; the loop exits on session_complete
+                msg = ws.receive_json()
+                if msg["type"] == "session_complete":
+                    completed = True
+                    break
+                assert msg["type"] == "status"
+                statuses.append(msg["data"])
+
+            assert completed, "socket never delivered session_complete"
+            assert len(statuses) > 1, "expected a stream of windows, not a single record"
+
+        expected = client.get("/api/v1/history").json()["records"]
+        assert [s["state"] for s in statuses] == [r["state"] for r in expected]
+
+    def test_late_subscriber_receives_the_backlog(self, client, replay_fixture_path):
+        """Connecting mid/post-session (e.g. a browser refresh) must not lose earlier windows."""
+        client.post(
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
         )
         client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+        finish_session(client)
         expected = client.get("/api/v1/history").json()["records"]
 
         received = []
         with client.websocket_connect("/ws/v1/live") as ws:
-            for _ in range(len(expected)):
+            for _ in range(len(expected) + 1):
                 msg = ws.receive_json()
-                assert msg["type"] == "status"
+                if msg["type"] == "session_complete":
+                    break
                 received.append(msg["data"])
 
-        assert len(received) == len(expected)
         assert [r["state"] for r in received] == [r["state"] for r in expected]
 
     def test_sends_single_waiting_message_with_no_session(self, client):
         with client.websocket_connect("/ws/v1/live") as ws:
             msg = ws.receive_json()
             assert msg["data"]["state"] == WAITING
+
+    def test_connecting_before_calibration_gets_an_immediate_snapshot(self, client, replay_fixture_path):
+        """Regression: a session is armed but nothing has streamed, so the subscriber queue is empty.
+
+        Without an immediate snapshot the client blocks on that empty queue and renders a blank
+        screen until the first window lands -- which, at a realistic playback speed, is many seconds.
+        """
+        client.post(
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
+        )
+        with client.websocket_connect("/ws/v1/live") as ws:
+            msg = ws.receive_json()
+            assert msg["type"] == "status"
+            assert msg["data"]["state"] == CALIBRATING
+
+
+class TestStreamingLifecycle:
+    def test_calibration_does_not_process_the_session(self, engine, replay_fixture_path):
+        """The core contract of the refactor: calibration produces a baseline, and nothing else.
+
+        Asserted on the engine rather than through HTTP, because through HTTP the answer depends on
+        whether the background player happened to get scheduled -- which is a race, not a contract.
+        """
+        engine.start_session(source_mode="replay", session_id="s", replay_path=replay_fixture_path)
+        engine.run_calibration(quiet_seconds=85.0)
+
+        assert engine.baseline is not None
+        assert engine.status_history == []  # not one window processed yet
+        assert engine.is_complete is False
+
+        first = engine.advance()
+        assert first is not None
+        assert len(engine.status_history) == 1  # exactly one window per advance()
+
+        engine.drain()
+        assert engine.is_complete is True
+        assert len(engine.status_history) > 1
+
+    def test_progress_reports_completion(self, client, replay_fixture_path):
+        client.post(
+            "/api/v1/session/start", json={"source_mode": "replay", "replay_path": str(replay_fixture_path), "speed": 0}
+        )
+        client.post("/api/v1/calibration/start", json={"quiet_seconds": 85.0})
+        progress = finish_session(client)
+        assert progress["complete"] is True
+        assert progress["calibrated"] is True
+        assert progress["n_windows"] == len(client.get("/api/v1/history").json()["records"])
+
+
+class TestCORS:
+    def test_browser_origin_is_allowed(self, client):
+        """Without this the React dashboard at localhost:3000 cannot make a single call."""
+        resp = client.get("/api/v1/health", headers={"Origin": "http://localhost:3000"})
+        assert resp.headers["access-control-allow-origin"] == "http://localhost:3000"
+
+    def test_preflight_is_answered(self, client):
+        resp = client.options(
+            "/api/v1/session/start",
+            headers={
+                "Origin": "http://localhost:3000",
+                "Access-Control-Request-Method": "POST",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.headers["access-control-allow-origin"] == "http://localhost:3000"
 
 
 class TestErrorResponseShape:

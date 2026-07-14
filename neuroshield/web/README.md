@@ -1,50 +1,72 @@
-# NeuroShield web dashboard (React / Next.js)
+# NeuroShield — web dashboard
 
-The React/Next.js frontend for NeuroShield (design doc tasks D8/D9). It talks to the FastAPI
-backend and provides four views: **Live** (stress index, level, affect, four physiological axes,
-reasons), **Summary** (recovery trend, time-in-state, episodes), **Trends** (stress index over the
-session), and **Insights** (3-dataset validation scoreboard + nurse context analytics).
+React / Next.js 14 (App Router) frontend for the NeuroShield backend.
 
-## ⚠️ Verification status
+## Verification status — read this first
 
-This source was written in an environment **without Node.js/npm**, so it has **not** been built or
-run here. It is delivered as complete, reviewed source. Before relying on it, run:
+**This code has never been compiled.** It was written and reviewed by hand in an environment with no
+Node, no npm, and no way to install them. Every other part of NeuroShield (backend, models, Streamlit
+dashboard) is verified by a passing test suite and by being run end-to-end; this app is not.
+
+Expect a first `npm run build` to surface type errors. That is normal for 700+ lines of
+never-compiled TypeScript and does not mean the design is wrong — report the errors and they can be
+fixed quickly. **Do not demo from this until it builds.**
+
+The Streamlit dashboard (`app/dashboard.py`, run from the repo root) is the verified UI and shows the
+same data.
+
+## Run it
+
+The backend must be running first:
+
+```bash
+# from the repo root
+uv run uvicorn neuroshield.api.main:app --port 8000
+```
+
+Then:
 
 ```bash
 cd web
+cp .env.example .env.local     # optional; defaults to http://127.0.0.1:8000
 npm install
-npm run typecheck   # tsc --noEmit
-npm run build       # next build
+npm run typecheck              # do this first -- fastest way to find breakage
+npm run dev                    # http://localhost:3000
 ```
 
-The **Streamlit dashboard** (`app/dashboard.py`) is the verified UI for the same backend and is
-exercised by the automated test suite (`tests/test_dashboard.py`); use it if you need a
-known-working dashboard immediately.
+The backend allows CORS from `localhost:3000` and `127.0.0.1:3000` by default. Serving the frontend
+from any other origin requires setting `NEUROSHIELD_CORS_ORIGINS` on the backend, or the browser will
+block every request.
 
-## Run (after the backend is up)
+## How it gets data
 
-```bash
-# 1. Start the backend (from the repo root)
-uv run python -m neuroshield.api.main         # http://127.0.0.1:8000
+Status is **pushed, not polled**. On mount, `lib/ws.ts` opens a WebSocket to `/ws/v1/live` and
+receives one message per 60-second window as the backend processes it, then a `session_complete`
+message. It reconnects automatically and replays the backlog on reconnect, so refreshing the browser
+mid-session loses nothing.
 
-# 2. Start the frontend
-cd web
-npm install
-NEXT_PUBLIC_NEUROSHIELD_API_URL=http://127.0.0.1:8000 npm run dev   # http://localhost:3000
-```
+REST (`lib/api.ts`) is used only for what isn't per-window: system info, the session summary, and the
+offline research artifacts.
 
-Then click **Start replay + calibrate** to drive the committed fixture through the pipeline.
+## Views
 
-## Structure
+| Tab | Shows |
+|---|---|
+| **Live** | Status badge, the 0–100 stress index (hero KPI), level, affect state + confidence, the four physiological axes as signed bars, plain-language reasons, latest values, signal quality |
+| **Trends** | Stress index / heart rate / skin conductance over time (inline SVG — no charting dependency) |
+| **Session summary** | Recovery trend, peak/mean index, HRV proxy, stress episodes, time in each state |
+| **Research insights** | Cross-dataset validation scoreboard and nurse-shift context |
 
-- `lib/api.ts` — typed backend client; validates `schema_version` / `feature_version` and raises
-  `BackendUnreachableError` / `BackendValidationError` (mirrors `app/backend_client.py`).
-- `lib/state.ts` — state label/color helpers (mirrors `app/view_state.py`).
-- `app/page.tsx` — the four-view dashboard (polls every 3s; shows a disconnected/backend-error
-  banner instead of stale data on failure).
-- `app/layout.tsx` — root layout.
+## Two things the UI is deliberate about
 
-## Config
+**Abstention is shown, not hidden.** When the model declines to score a window (hand motion, poor
+signal), the UI says so explicitly rather than showing a stale or invented number. In the Trends
+chart those windows are *gaps in the line* — interpolating across them would draw data the model
+explicitly refused to produce.
 
-Set `NEXT_PUBLIC_NEUROSHIELD_API_URL` to point at the backend (defaults to
-`http://127.0.0.1:8000`).
+**Superseded numbers are labelled.** The validation scoreboard on disk predates the shipped model.
+The backend flags it, and the Insights tab renders that warning above the table rather than quietly
+presenting old numbers as current.
+
+See `docs/prediction_spec.md` for what every field means, and `docs/no_clinical_claims.md` for what
+this product may not claim.
