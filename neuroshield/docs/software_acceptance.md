@@ -57,7 +57,7 @@ integration (T20) to begin -- until then, the software replay demo is the produc
 
 6. **Start the dashboard:**
    ```bash
-   uv run streamlit run app/dashboard.py
+   cd web && npm install && npm run dev   # http://localhost:3000
    ```
    Open the printed local URL. You should see the connection state, current status badge,
    quality row, reasons, latest values, and a history chart, matching T17.

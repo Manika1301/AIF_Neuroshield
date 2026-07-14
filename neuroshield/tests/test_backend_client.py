@@ -6,7 +6,7 @@ import pytest
 import requests
 import uvicorn
 
-from backend_client import (
+from neuroshield.client import (
     BackendClient,
     BackendUnreachableError,
     BackendValidationError,

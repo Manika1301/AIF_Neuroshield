@@ -1,19 +1,7 @@
-# NeuroShield — web dashboard
+# NeuroShield — dashboard
 
-React / Next.js 14 (App Router) frontend for the NeuroShield backend.
-
-## Verification status — read this first
-
-**This code has never been compiled.** It was written and reviewed by hand in an environment with no
-Node, no npm, and no way to install them. Every other part of NeuroShield (backend, models, Streamlit
-dashboard) is verified by a passing test suite and by being run end-to-end; this app is not.
-
-Expect a first `npm run build` to surface type errors. That is normal for 700+ lines of
-never-compiled TypeScript and does not mean the design is wrong — report the errors and they can be
-fixed quickly. **Do not demo from this until it builds.**
-
-The Streamlit dashboard (`app/dashboard.py`, run from the repo root) is the verified UI and shows the
-same data.
+Next.js 14 (App Router) + Tailwind + [shadcn/ui](https://ui.shadcn.com). The only frontend; the
+Streamlit prototype has been removed.
 
 ## Run it
 
@@ -28,45 +16,66 @@ Then:
 
 ```bash
 cd web
-cp .env.example .env.local     # optional; defaults to http://127.0.0.1:8000
 npm install
-npm run typecheck              # do this first -- fastest way to find breakage
-npm run dev                    # http://localhost:3000
+npm run dev        # http://localhost:3000
 ```
 
-The backend allows CORS from `localhost:3000` and `127.0.0.1:3000` by default. Serving the frontend
-from any other origin requires setting `NEUROSHIELD_CORS_ORIGINS` on the backend, or the browser will
-block every request.
+Open it and press **Start session** — the dashboard drives the whole flow (start → calibrate →
+stream). No curl required.
 
-## How it gets data
+The backend allows CORS from `localhost:3000` and `127.0.0.1:3000`. Serving from any other origin
+means setting `NEUROSHIELD_CORS_ORIGINS` on the backend, or the browser blocks every request.
 
-Status is **pushed, not polled**. On mount, `lib/ws.ts` opens a WebSocket to `/ws/v1/live` and
-receives one message per 60-second window as the backend processes it, then a `session_complete`
-message. It reconnects automatically and replays the backlog on reconnect, so refreshing the browser
-mid-session loses nothing.
+## The design goal: it has to be understandable
 
-REST (`lib/api.ts`) is used only for what isn't per-window: system info, the session summary, and the
+A 0–100 "stress" number, on its own, is an invitation to misread. So:
+
+- **The number never appears alone.** It always carries a plain-English verdict ("High — arousal is
+  well above your resting level"), what it's relative to (*your* baseline, not a population), and
+  the reasons behind it.
+- **Jargon is translated once**, in `lib/state.ts`. The API says `electrodermal`, `poor_signal`,
+  `hrv_proxy_recovery`; the UI says "sweat response", "paused — weak signal", "recovery signal".
+  That vocabulary stays correct in the API and never leaks to the screen.
+- **Refusals are shown as refusals.** When the model declines to score a window (hand motion, poor
+  contact) the UI says so and explains why, instead of showing a stale number. In the chart those
+  windows are **gaps in the line** — interpolating across them would draw data the model explicitly
+  refused to produce.
+- **The error bar is in the product**, not buried in a docs folder. The "How it works" tab states
+  the accuracy (0.919 ±0.036) *and* that per-person accuracy ranged from 0.50 to 1.00 — i.e. this
+  model is good on average and can be useless for an individual. A health dashboard that hides that
+  is lying by omission.
+- **Direction is stated, not assumed.** Cooler skin and *falling* heart-rate variability both mean
+  *more* arousal. The axis bars are anchored at the centre and phrased "toward arousal" / "toward
+  calm", because "above your baseline" would be actively wrong for the thermal axis.
+
+## How data arrives
+
+Status is **pushed, not polled**. `lib/ws.ts` opens a WebSocket to `/ws/v1/live` and receives one
+message per 60-second window as the backend computes it, then `session_complete`. It reconnects
+automatically and replays the backlog, so a refresh mid-session loses nothing.
+
+REST (`lib/api.ts`) is used only for what isn't per-window: system info, session summary, and the
 offline research artifacts.
 
-## Views
+## Layout
 
-| Tab | Shows |
+| File | Role |
 |---|---|
-| **Live** | Status badge, the 0–100 stress index (hero KPI), level, affect state + confidence, the four physiological axes as signed bars, plain-language reasons, latest values, signal quality |
-| **Trends** | Stress index / heart rate / skin conductance over time (inline SVG — no charting dependency) |
-| **Session summary** | Recovery trend, peak/mean index, HRV proxy, stress episodes, time in each state |
-| **Research insights** | Cross-dataset validation scoreboard and nurse-shift context |
+| `app/page.tsx` | Shell, tabs, session wiring |
+| `components/StatusHero.tsx` | The verdict + index + why |
+| `components/AxisBars.tsx` | The four measured systems |
+| `components/SessionSetup.tsx` | One-click start (advanced knobs collapsed) |
+| `components/AboutModel.tsx` | Accuracy, limits, inputs/outputs |
+| `components/TimeSeries.tsx` | Dependency-free SVG chart with real gaps |
+| `lib/state.ts` | **The plain-language layer** |
 
-## Two things the UI is deliberate about
+## Checks
 
-**Abstention is shown, not hidden.** When the model declines to score a window (hand motion, poor
-signal), the UI says so explicitly rather than showing a stale or invented number. In the Trends
-chart those windows are *gaps in the line* — interpolating across them would draw data the model
-explicitly refused to produce.
-
-**Superseded numbers are labelled.** The validation scoreboard on disk predates the shipped model.
-The backend flags it, and the Insights tab renders that warning above the table rather than quietly
-presenting old numbers as current.
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
 
 See `docs/prediction_spec.md` for what every field means, and `docs/no_clinical_claims.md` for what
 this product may not claim.

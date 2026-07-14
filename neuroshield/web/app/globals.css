@@ -1,197 +1,123 @@
-/* NeuroShield design system.
-   Semantic tokens first, components second. The status palette is deliberately the ONLY place
-   green/amber/red are defined -- a traffic light that means different things in different corners
-   of a health dashboard is worse than no traffic light. */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --bg: #f6f7f9;
-  --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --border: #e2e5ea;
-  --text: #14181f;
-  --text-muted: #626b7a;
+/* Tokens are bare HSL triplets ("222 25% 11%"), not full color functions, because
+   tailwind.config.js wraps them as hsl(var(--token)). The shadcn CLI defaults to Tailwind v4's
+   oklch() syntax, which would produce hsl(oklch(...)) here -- invalid, and every color would
+   silently fall back to nothing. */
 
-  --calm: #16a34a;
-  --calm-bg: #e7f6ec;
-  --elevated: #d97706;
-  --elevated-bg: #fdf1e0;
-  --high: #dc2626;
-  --high-bg: #fceaea;
-  --neutral: #6b7280;
-  --neutral-bg: #eef0f3;
-  --info: #2563eb;
-  --info-bg: #e7effd;
-
-  --radius: 10px;
-  --gap: 16px;
-  --shadow: 0 1px 2px rgba(16, 20, 27, 0.05), 0 4px 12px rgba(16, 20, 27, 0.04);
-
-  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --bg: #0f1216;
-    --surface: #171b21;
-    --surface-2: #1e232b;
-    --border: #2b323c;
-    --text: #e8ebef;
-    --text-muted: #98a2b3;
+    --background: 220 20% 97%;
+    --foreground: 222 25% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 11%;
+    --primary: 222 47% 24%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220 14% 94%;
+    --secondary-foreground: 222 25% 20%;
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 43%;
+    --accent: 220 14% 94%;
+    --accent-foreground: 222 25% 20%;
+    --destructive: 0 72% 48%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 13% 88%;
+    --input: 220 13% 88%;
+    --ring: 222 47% 24%;
+    --radius: 0.6rem;
 
-    --calm-bg: #13291b;
-    --elevated-bg: #2e2413;
-    --high-bg: #2e1717;
-    --neutral-bg: #232830;
-    --info-bg: #16233c;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.25);
+    /* Stress palette */
+    --calm: 142 66% 33%;
+    --calm-foreground: 142 70% 20%;
+    --calm-muted: 142 55% 94%;
+    --elevated: 32 90% 44%;
+    --elevated-foreground: 30 80% 26%;
+    --elevated-muted: 38 92% 94%;
+    --high: 0 72% 48%;
+    --high-foreground: 0 70% 32%;
+    --high-muted: 0 80% 96%;
+
+    --chart-1: 222 60% 50%;
+    --chart-2: 0 72% 48%;
+    --chart-3: 142 66% 33%;
+    --chart-4: 32 90% 44%;
+    --chart-5: 265 50% 52%;
+
+    --sidebar: 220 20% 97%;
+    --sidebar-foreground: 222 25% 11%;
+    --sidebar-primary: 222 47% 24%;
+    --sidebar-primary-foreground: 210 40% 98%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 222 25% 20%;
+    --sidebar-border: 220 13% 88%;
+    --sidebar-ring: 222 47% 24%;
+  }
+
+  .dark {
+    --background: 222 24% 8%;
+    --foreground: 210 20% 92%;
+    --card: 222 22% 12%;
+    --card-foreground: 210 20% 92%;
+    --popover: 222 22% 12%;
+    --popover-foreground: 210 20% 92%;
+    --primary: 210 30% 90%;
+    --primary-foreground: 222 30% 14%;
+    --secondary: 220 16% 18%;
+    --secondary-foreground: 210 20% 92%;
+    --muted: 220 16% 18%;
+    --muted-foreground: 218 12% 62%;
+    --accent: 220 16% 18%;
+    --accent-foreground: 210 20% 92%;
+    --destructive: 0 62% 52%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 14% 22%;
+    --input: 220 14% 22%;
+    --ring: 210 30% 80%;
+
+    --calm: 142 60% 46%;
+    --calm-foreground: 142 60% 72%;
+    --calm-muted: 142 40% 14%;
+    --elevated: 35 90% 56%;
+    --elevated-foreground: 38 90% 72%;
+    --elevated-muted: 32 50% 14%;
+    --high: 0 72% 58%;
+    --high-foreground: 0 80% 76%;
+    --high-muted: 0 45% 15%;
+
+    --chart-1: 217 75% 65%;
+    --chart-2: 0 72% 60%;
+    --chart-3: 142 60% 50%;
+    --chart-4: 35 90% 58%;
+    --chart-5: 265 60% 68%;
+
+    --sidebar: 222 22% 12%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 210 30% 90%;
+    --sidebar-primary-foreground: 222 30% 14%;
+    --sidebar-accent: 220 16% 18%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 220 14% 22%;
+    --sidebar-ring: 210 30% 80%;
   }
 }
 
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
 }
 
-.page { max-width: 1180px; margin: 0 auto; padding: 24px 20px 64px; }
-
-header.masthead { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
-header.masthead h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
-.subtitle { color: var(--text-muted); font-size: 13px; margin: 0 0 20px; }
-
-/* ---------- connection / banners ---------- */
-
-.conn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--neutral); }
-.dot.open { background: var(--calm); }
-.dot.connecting { background: var(--elevated); }
-.dot.closed { background: var(--high); }
-
-.banner {
-  padding: 10px 14px; border-radius: var(--radius); margin-bottom: var(--gap);
-  font-size: 13px; border: 1px solid transparent;
+@layer utilities {
+  /* Numbers that change every window must not jitter their own width. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
 }
-.banner.warn { background: var(--elevated-bg); border-color: var(--elevated); color: var(--text); }
-.banner.err { background: var(--high-bg); border-color: var(--high); color: var(--text); }
-.banner.info { background: var(--info-bg); border-color: var(--info); color: var(--text); }
-
-/* ---------- layout ---------- */
-
-.card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 16px; box-shadow: var(--shadow);
-}
-.card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin: 0 0 12px; }
-.grid { display: grid; gap: var(--gap); }
-.grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.grid.cols-3 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-.grid.cols-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-.stack { display: flex; flex-direction: column; gap: var(--gap); }
-
-/* ---------- tabs & controls ---------- */
-
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: var(--gap); flex-wrap: wrap; }
-.tab {
-  padding: 8px 14px; border: none; background: none; cursor: pointer; font: inherit; font-size: 14px;
-  color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px;
-}
-.tab:hover { color: var(--text); }
-.tab.active { color: var(--text); border-bottom-color: var(--info); font-weight: 600; }
-
-.controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-input, select {
-  font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 7px;
-  border: 1px solid var(--border); background: var(--surface); color: var(--text); min-width: 110px;
-}
-input:focus, select:focus { outline: 2px solid var(--info); outline-offset: -1px; }
-
-button.primary {
-  font: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: 7px;
-  border: 1px solid var(--info); background: var(--info); color: #fff; cursor: pointer;
-}
-button.primary:hover:not(:disabled) { filter: brightness(1.08); }
-button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-
-/* ---------- status ---------- */
-
-.status-badge {
-  display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-  border-radius: var(--radius); border: 1px solid; font-weight: 600; margin-bottom: var(--gap);
-}
-.status-badge .reasons { font-weight: 400; font-size: 13px; color: var(--text-muted); }
-.s-calm    { background: var(--calm-bg);     border-color: var(--calm);     color: var(--calm); }
-.s-elevated{ background: var(--elevated-bg); border-color: var(--elevated); color: var(--elevated); }
-.s-high    { background: var(--high-bg);     border-color: var(--high);     color: var(--high); }
-.s-neutral { background: var(--neutral-bg);  border-color: var(--border);   color: var(--text-muted); }
-.s-info    { background: var(--info-bg);     border-color: var(--info);     color: var(--info); }
-
-/* the hero KPI */
-.index-hero { display: flex; align-items: baseline; gap: 10px; }
-.index-value { font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
-.index-max { font-size: 15px; color: var(--text-muted); }
-
-.metric { display: flex; flex-direction: column; gap: 2px; }
-.metric .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-.metric .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.metric .sub { font-size: 12px; color: var(--text-muted); }
-
-/* ---------- axes ---------- */
-
-.axis { margin-bottom: 12px; }
-.axis:last-child { margin-bottom: 0; }
-.axis-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
-.axis-name { text-transform: capitalize; }
-.axis-score { font-variant-numeric: tabular-nums; color: var(--text-muted); }
-/* Axis scores are signed z-scores, so the track has a midpoint: left of centre is BELOW this
-   person's own baseline, right is above. A left-anchored bar would misrepresent the sign. */
-.axis-track { position: relative; height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
-.axis-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--border); }
-.axis-fill { position: absolute; top: 0; bottom: 0; border-radius: 4px; }
-.axis-fill.normal { background: var(--neutral); }
-.axis-fill.elevated { background: var(--elevated); }
-.axis-fill.high { background: var(--high); }
-
-/* ---------- tables / chips / misc ---------- */
-
-.table-wrap { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 13px; }
-th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
-td.num { text-align: right; font-variant-numeric: tabular-nums; }
-
-.chip {
-  display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600;
-  background: var(--neutral-bg); color: var(--text-muted);
-}
-.chip.calm { background: var(--calm-bg); color: var(--calm); }
-.chip.elevated { background: var(--elevated-bg); color: var(--elevated); }
-.chip.high { background: var(--high-bg); color: var(--high); }
-
-ul.reasons { margin: 0; padding-left: 18px; font-size: 14px; }
-ul.reasons li { margin-bottom: 4px; }
-
-.muted { color: var(--text-muted); font-size: 13px; }
-.mono { font-family: var(--mono); font-size: 12px; }
-.empty { color: var(--text-muted); font-size: 14px; padding: 24px 0; text-align: center; }
-
-pre.raw {
-  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
-  padding: 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; margin: 0;
-}
-
-/* ---------- chart ---------- */
-
-.chart { width: 100%; height: auto; display: block; }
-.chart .grid-line { stroke: var(--border); stroke-width: 1; }
-.chart .axis-label { fill: var(--text-muted); font-size: 10px; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-.legend .key { display: inline-flex; align-items: center; gap: 6px; }
-.legend .swatch { width: 10px; height: 3px; border-radius: 2px; }

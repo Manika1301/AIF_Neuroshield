@@ -24,7 +24,6 @@ from pathlib import Path
 import uvicorn
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "app"))
 
 REPLAY_FIXTURE = Path("data/fixtures/calm_motion_stress.ndjson")
 OUTPUT_PATH = Path("artifacts/demo/software_acceptance.json")
@@ -115,7 +114,7 @@ def reset_default_engine() -> None:
 
 
 def main() -> int:
-    from backend_client import BackendClient, BackendUnreachableError
+    from neuroshield.client import BackendClient, BackendUnreachableError
     from neuroshield.runtime.status import AMBER, CALIBRATING, GREEN, MOTION_PAUSED, POOR_SIGNAL, RED, WAITING
     from neuroshield.runtime.status import StatusStateMachine
 

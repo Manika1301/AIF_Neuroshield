@@ -27,7 +27,7 @@ is connected — see `docs/hardware_handoff.md` (added once the hardware contrac
 - `docs/` — contracts, dataset notes, model card, and the software acceptance definition.
 - `src/neuroshield/` — Python package: dataset loaders, feature extraction, models, live
   runtime, and the FastAPI backend.
-- `app/` — the local dashboard.
+- `web/` — the dashboard (Next.js + shadcn/ui), fed by the backend's WebSocket.
 - `tests/` — automated tests for the pipeline.
 - `data/` — dataset storage. `raw/`, `external/`, and `interim/` are not committed; `fixtures/`
   holds small synthetic replay files that are committed.
@@ -75,9 +75,11 @@ curl -X POST http://127.0.0.1:8000/api/v1/session/start \
 curl -X POST http://127.0.0.1:8000/api/v1/calibration/start \
   -H "Content-Type: application/json" -d '{"quiet_seconds":150}'
 
-# 7. In a third terminal, start the dashboard and open the printed local URL
-uv run streamlit run app/dashboard.py
+# 7. In a third terminal, start the dashboard
+cd web && npm install && npm run dev   # http://localhost:3000
 ```
+
+Or just open http://localhost:3000 and hit **Start session** — the dashboard drives steps 6-7 itself.
 
 ### How the session streams
 
@@ -90,8 +92,8 @@ the session; the windows are then produced one at a time and pushed to any conne
 | `GET /api/v1/session/progress` | `{n_windows, complete, streaming}` — how far the session has got. |
 | `GET /api/v1/history` | The same records, for clients that poll instead of subscribe. |
 
-Both frontends read the same session, so they cannot disagree: the browser dashboard subscribes to
-the socket, Streamlit polls REST.
+The dashboard subscribes to the socket and renders each window as it lands. `neuroshield.client`
+(`BackendClient`) is the Python-side equivalent, used by the acceptance gate.
 
 The backend now serves the **multi-head model** (`m3_multihead_personalized_v1`): a 0-100 stress
 index + calm/elevated/high level (Head A) and a baseline/stress/amusement/meditation affect state
@@ -108,15 +110,20 @@ uv run python -m neuroshield.models.nurse_insights # Tier-4 nurse context analyt
 The historical single-head M1 model (`m1_wesad_features_v1`, `uv run python -m
 neuroshield.models.artifact`) is retained for comparison and is never overwritten.
 
-### Frontends
+### Frontend
 
-- **Streamlit** (`app/dashboard.py`) — the **verified** UI. The test suite drives it end-to-end
-  against a real backend (start session → calibrate → assert the streamed windows render). Shows the
-  index, level, affect, four axes, session summary, and research insights.
-- **React / Next.js** (`web/`) — the richer browser dashboard, fed by the WebSocket. Delivered as
-  **reviewed but never-compiled source**: this environment has no Node/npm, so not one line of it has
-  been type-checked or run. Run `cd web && npm install && npm run typecheck` first, and expect to fix
-  compiler errors before demoing. See `web/README.md`.
+`web/` — a Next.js + shadcn/ui dashboard, fed by the WebSocket. Verified in a real browser: it
+streams a session live, renders the index/level/affect/axes, and shows the model's own error bar.
+
+The design goal is **comprehension**. A 0-100 number with no context invites misreading, so the
+index never appears without (a) a plain-English verdict, (b) what it's relative to — your own
+baseline — and (c) the reasons behind it. Sensor jargon is translated once, in `web/lib/state.ts`:
+`electrodermal` is "sweat response", `poor_signal` is "paused - weak signal". Windows the model
+refused to score are shown as refusals and left as gaps in the chart, never interpolated.
+
+```bash
+cd web && npm install && npm run dev
+```
 
 ### What the model predicts
 

@@ -1,5 +1,8 @@
 """HTTP client for the NeuroShield FastAPI backend, with response validation.
 
+Used by the acceptance gate and available to any Python consumer. The browser dashboard talks to
+the backend directly (see web/lib/api.ts); this is the Python-side equivalent.
+
 Every response is checked before the dashboard trusts it: missing fields, or a
 ``schema_version``/``feature_version`` the dashboard doesn't recognize, raise
 ``BackendValidationError`` instead of being silently rendered. The expected versions are
