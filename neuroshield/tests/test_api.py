@@ -390,6 +390,24 @@ class TestCORS:
         resp = client.get("/api/v1/health", headers={"Origin": "http://localhost:3000"})
         assert resp.headers["access-control-allow-origin"] == "http://localhost:3000"
 
+    def test_any_localhost_port_is_allowed(self, client):
+        """`next dev` hops to 3001/3002 when its port is busy. Pinning CORS to 3000 turned that
+        into a wall of opaque 400s on preflight, with the dashboard silently failing to load."""
+        for origin in ("http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3002"):
+            resp = client.get("/api/v1/health", headers={"Origin": origin})
+            assert resp.headers.get("access-control-allow-origin") == origin, origin
+
+    def test_remote_origin_is_still_refused(self, client):
+        resp = client.options(
+            "/api/v1/system",
+            headers={
+                "Origin": "https://evil.example.com",
+                "Access-Control-Request-Method": "GET",
+                "Access-Control-Request-Headers": "content-type",
+            },
+        )
+        assert resp.status_code == 400
+
     def test_preflight_is_answered(self, client):
         resp = client.options(
             "/api/v1/session/start",

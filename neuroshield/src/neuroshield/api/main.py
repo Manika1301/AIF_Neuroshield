@@ -35,15 +35,24 @@ ARTIFACTS_DIR = Path(os.environ.get("NEUROSHIELD_ARTIFACTS_DIR", _PACKAGE_ROOT /
 SCOREBOARD_PATH = ARTIFACTS_DIR / "metrics" / "validation_scoreboard.json"
 NURSE_INSIGHTS_PATH = ARTIFACTS_DIR / "metrics" / "nurse_context_insights.md"
 
-# The browser dashboard is served from a different origin (localhost:3000) than this API
-# (127.0.0.1:8000), so without CORS every fetch from it is blocked before it ever reaches us.
-DEFAULT_CORS_ORIGINS = "http://localhost:3000,http://127.0.0.1:3000"
-CORS_ORIGINS = [o.strip() for o in os.environ.get("NEUROSHIELD_CORS_ORIGINS", DEFAULT_CORS_ORIGINS).split(",") if o.strip()]
+# The browser dashboard is served from a different origin than this API (127.0.0.1:8000), so
+# without CORS every fetch from it is blocked before it ever reaches us.
+#
+# Any *localhost* port is allowed, not just 3000. `next dev` silently moves to 3001/3002 when its
+# preferred port is busy, which pinned-port CORS turns into a wall of opaque 400s on preflight --
+# the dashboard simply stops loading, and nothing says why. This server binds to 127.0.0.1 and is
+# local-only by design (see the module docstring), so trusting local origins costs nothing.
+# NEUROSHIELD_CORS_ORIGINS overrides with an explicit allowlist when that isn't wanted.
+LOCALHOST_ORIGIN_REGEX = r"http://(localhost|127\.0\.0\.1)(:\d+)?"
+
+_explicit_origins = os.environ.get("NEUROSHIELD_CORS_ORIGINS", "")
+CORS_ORIGINS = [o.strip() for o in _explicit_origins.split(",") if o.strip()]
 
 app = FastAPI(title="NeuroShield API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,
+    allow_origin_regex=None if CORS_ORIGINS else LOCALHOST_ORIGIN_REGEX,
     allow_credentials=False,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
