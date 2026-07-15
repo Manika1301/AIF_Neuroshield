@@ -1,0 +1,553 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------------------------------------------------------------------------
+% NeuroShield research paper. Self-contained: uses only widely available
+% packages, so it compiles on Overleaf or any standard TeX Live install with
+% no .bib file (references are a manual thebibliography).
+% ---------------------------------------------------------------------------
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{barfill}{HTML}{3B5B92}
+\definecolor{rowalt}{HTML}{F2F4F7}
+
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+
+\newcommand{\kpi}[1]{\textbf{#1}}
+
+\title{\vspace{-1.2cm}\textbf{NeuroShield: A Personalized, Multi-Signal System for
+Honest Real-Time Stress Detection}}
+\author{Manika Jhaveri}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% ===========================================================================
+\begin{abstract}
+\noindent
+I present NeuroShield, a system that estimates a person's physiological stress in real time from
+low-cost wearable-grade sensors, and does so \emph{relative to that individual's own resting
+baseline} rather than a population average. The motivating observation is that absolute
+physiological values are ambiguous across people: two individuals can both be fully at rest at
+$58$ and $82$ beats per minute, so a model fed raw values expends capacity learning \emph{who} a
+person is instead of \emph{how aroused} they are. NeuroShield calibrates to each user during a short
+quiet period and expresses every subsequent reading as a deviation from that baseline. Every
+$60$~seconds it derives $36$ features from four physiological channels---photoplethysmography (PPG),
+electrodermal activity (EDA), skin temperature, and accelerometry---and feeds them to a two-headed
+gradient-boosted model: a calibrated head that emits a $0$--$100$ graded stress index, and a
+four-class head that separates stress arousal from positive arousal such as amusement. Under
+grouped leave-one-subject-out (LOSO) evaluation---training on some subjects and testing only on
+subjects never seen during training---the graded-stress head attains a balanced accuracy of
+\kpi{0.919}, exceeding the strongest comparable wrist-only result reported in the literature
+($0.874$). Beyond raw accuracy, the system is designed for \emph{epistemic honesty}: it abstains
+from prediction when motion or poor signal quality render a reading untrustworthy, it surfaces its
+own uncertainty (a $\pm 0.036$ standard error and a per-subject accuracy range of $0.50$--$1.00$),
+and it is structurally prevented from issuing any clinical or diagnostic claim. I describe the
+research, problem, objectives, plan, methodology, datasets, and results behind the system, and I
+report a negative result establishing that $0.919$ is the practical ceiling for the available data.
+\end{abstract}
+
+\vspace{0.3em}
+\noindent\textbf{Keywords:} affective computing, stress detection, wearable sensors, heart-rate
+variability, electrodermal activity, personalization, gradient boosting, model calibration,
+leave-one-subject-out validation.
+
+% ===========================================================================
+\section{Introduction}
+
+Chronic stress is among the most prevalent and costly health burdens, yet the instruments used to
+track it are weak. The dominant tool---self-report---is unreliable: people are poor at noticing
+their own stress, and by the time they consciously register it they have often been under load for
+hours. The autonomic nervous system, however, responds first, and it responds \emph{measurably}.
+Psychological stress activates the sympathetic branch of the autonomic nervous system, producing a
+consistent peripheral signature: elevated heart rate, suppressed heart-rate variability, increased
+sweat-gland activity, and cooling of the skin as blood is redirected toward the core. Each of these
+is observable with inexpensive sensors.
+
+The difficulty is that turning those signals into a trustworthy estimate of stress is far harder
+than it first appears, for three reasons. First, physiological signals vary enormously between
+individuals, so a fixed rule (``heart rate above $90 \Rightarrow$ stress'') is meaningless across a
+population. Second, wearable sensors on a moving body produce unreliable data much of the time, and
+a model that outputs a confident number during that period is not merely useless but actively
+misleading. Third, the commercial temptation is to claim detection of ``anxiety'' or ``burnout,''
+which the underlying signals physically cannot support.
+
+NeuroShield addresses all three. My contributions are:
+
+\begin{enumerate}[leftmargin=1.4em,itemsep=0.15em]
+  \item A \textbf{personalization method} that expresses every feature relative to each user's own
+        calibrated baseline, which I show is the single largest driver of cross-subject accuracy.
+  \item A \textbf{two-headed model} that produces a calibrated, graded ($0$--$100$) stress index and
+        additionally distinguishes stress arousal from positive arousal.
+  \item An \textbf{abstention mechanism} that makes refusal to predict a first-class output.
+  \item An \textbf{honest evaluation}: LOSO throughout, a reported error bar, held-out datasets, and
+        a documented negative result showing that further tuning does not improve on $0.919$.
+  \item An \textbf{end-to-end streaming system} in which hardware acts only as a data source, so the
+        entire pipeline is validated before any device is attached.
+\end{enumerate}
+
+% ===========================================================================
+\section{Background and Related Work}
+
+I grounded the design in a review of physiological stress sensing, from which three findings shaped
+every subsequent decision.
+
+\textbf{Stress has a measurable, multi-channel signature.} The sympathetic response elevates heart
+rate and reduces beat-to-beat variability, because the parasympathetic (vagal) ``brake'' on the
+heart is released. It increases eccrine sweat-gland activity, raising skin conductance. And it
+drives peripheral vasoconstriction, cooling the skin at the extremities. A single channel is
+ambiguous; the combination is informative. Electrodermal activity is of particular value because
+eccrine sweat glands are innervated \emph{solely} by the sympathetic branch, with no antagonistic
+parasympathetic input~\cite{greco2016cvxeda}, making EDA the cleanest available proxy for arousal.
+
+\textbf{Reported accuracies are frequently inflated by weak validation.} Many studies report
+$93$--$99\%$ accuracy, but these commonly rely on $k$-fold or intra-subject cross-validation, which
+allows the same individual to appear in both training and test partitions. A model can then memorize
+person-specific idiosyncrasies rather than learn a generalizable mapping. The honest protocol is
+\emph{leave-one-subject-out} (LOSO), in which the test subject is entirely unseen during training.
+Under LOSO, the strongest comparable wrist-only result I identified was $0.874$~\cite{siirtola2019}.
+I adopted LOSO as the sole evaluation metric.
+
+\textbf{Personalization is the dominant lever, and naive data pooling backfires.} The wearable
+affect literature, beginning with the WESAD benchmark~\cite{schmidt2018wesad}, repeatedly identifies
+subject-relative normalization as the largest source of cross-subject gain. I further found---and
+later empirically confirmed---that merely concatenating datasets to obtain ``more data'' can
+\emph{reduce} accuracy, because it folds cross-protocol distribution shift into the model without
+domain adaptation.
+
+% ===========================================================================
+\section{Problem Formulation and Objectives}
+
+\subsection{Problem statement}
+Given a stream of physiological samples from a small set of low-cost sensors, produce an honest,
+interpretable, real-time estimate of a person's stress that (i) adapts to individual physiology,
+(ii) recognizes and abstains under untrustworthy signal conditions, and (iii) never over-claims
+beyond what the sensors can support.
+
+\subsection{Objectives}
+I defined the project against seven concrete objectives:
+
+\begin{enumerate}[leftmargin=1.4em,itemsep=0.1em]
+  \item Build a complete software-first pipeline (data $\rightarrow$ features $\rightarrow$ model
+        $\rightarrow$ runtime $\rightarrow$ interface) that runs from replayed or streamed data with
+        no hardware dependency.
+  \item Detect stress in a personalized manner, calibrated to each user's own baseline.
+  \item Match or exceed the $\sim\!0.874$ LOSO benchmark under honest evaluation.
+  \item Produce a graded, interpretable output---a $0$--$100$ index with a plain-language
+        explanation of which physiological system drives it.
+  \item Make abstention a first-class behaviour under motion or poor signal quality.
+  \item Enforce honesty structurally, so no clinical or diagnostic claim can be emitted.
+  \item Deliver an interface a non-expert can understand, including the system's own limits.
+\end{enumerate}
+
+% ===========================================================================
+\section{Project Planning and Timeline}
+
+I decomposed the problem into six dependent concerns---data and contracts, feature engineering,
+modelling, runtime, serving, and validation/honesty---and adopted a deliberate \emph{software-first}
+strategy: prove the entire pipeline on public datasets and a synthetic sensor stream before
+attaching hardware, so that model, backend, and interface are all tested against the exact protocol
+the device will later use. A fixed raw-event schema defined up front guarantees that a synthetic
+generator, a replayed dataset, and future firmware all speak the same protocol.
+
+Table~\ref{tab:gantt} shows the project timeline as a Gantt chart across ten working weeks; shaded
+cells denote active weeks.
+
+\begin{table}[t]
+\centering
+\caption{Project timeline (Gantt chart). Shaded cells indicate active weeks.}
+\label{tab:gantt}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\begin{tabular}{p{5.4cm} *{10}{>{\centering\arraybackslash}p{0.42cm}}}
+\toprule
+\textbf{Phase} & W1 & W2 & W3 & W4 & W5 & W6 & W7 & W8 & W9 & W10 \\
+\midrule
+1. Background research \& scoping
+ & \cellcolor{barfill} & \cellcolor{barfill} & & & & & & & & \\
+2. Data contracts \& dataset loaders
+ & \cellcolor{barfill} & \cellcolor{barfill} & \cellcolor{barfill} & & & & & & & \\
+3. Feature pipeline (v1)
+ & & \cellcolor{barfill} & \cellcolor{barfill} & & & & & & & \\
+4. Baseline model (M1) + LOSO
+ & & & \cellcolor{barfill} & \cellcolor{barfill} & & & & & & \\
+5. Runtime: calibration, gate, states, explanations
+ & & & & \cellcolor{barfill} & \cellcolor{barfill} & \cellcolor{barfill} & & & & \\
+6. Backend + dashboard (v1)
+ & & & & & \cellcolor{barfill} & \cellcolor{barfill} & \cellcolor{barfill} & & & \\
+7. Dataset harmonization + held-out validation
+ & & & & & & \cellcolor{barfill} & \cellcolor{barfill} & & & \\
+8. Accuracy improvement (features-v2, personalization)
+ & & & & & & & \cellcolor{barfill} & \cellcolor{barfill} & & \\
+9. Real streaming + interface rebuild
+ & & & & & & & & \cellcolor{barfill} & \cellcolor{barfill} & \\
+10. Documentation, spec, hardening
+ & & & & & & & & & \cellcolor{barfill} & \cellcolor{barfill} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two heaviest phases were the runtime (Phase~5, where personalization and abstention live) and
+the accuracy work (Phase~8, which raised the model from $0.831$ to $0.919$). Phase~7 produced an
+important negative result---that naive dataset pooling harms accuracy---which I acted on by
+abandoning pooling.
+
+% ===========================================================================
+\section{Methodology}
+
+\subsection{Windowing}
+I slide a $60$-second analysis window over the aligned signals, stepping every $30$ seconds. Each
+window yields one fixed-schema feature row. A window overlapping a sensor dropout receives a low
+coverage score and is routed to the abstention layer (Section~\ref{sec:abstention}) rather than
+silently discarded.
+
+\subsection{Feature extraction}
+From four channels I compute $19$ absolute features per window using
+NeuroKit2~\cite{makowski2021neurokit} for pulse-peak detection and electrodermal decomposition.
+These include time-domain heart-rate-variability statistics, frequency-domain HRV, and a
+convex-optimization decomposition of skin conductance into tonic and phasic
+components~\cite{greco2016cvxeda}. The full feature set is enumerated in Section~\ref{sec:inputs}.
+Two features quantify sympathovagal balance and the low/high-frequency ratio of the inter-beat
+interval spectrum, defined as
+\begin{equation}
+\mathrm{LF/HF} = \frac{\displaystyle\int_{0.04}^{0.15} S(f)\,df}{\displaystyle\int_{0.15}^{0.40} S(f)\,df},
+\end{equation}
+where $S(f)$ is the power spectral density of the inter-beat-interval series; a higher ratio
+indicates greater sympathetic dominance.
+
+\subsection{Personalization}
+This is the core of the method. Let $x_{i}$ be a physiological feature for window $i$ of a given
+user, and let $\mathcal{B}$ be the set of windows in that user's initial quiet calibration period
+(the first $\sim\!300$ seconds of accepted data). I compute the personal mean and standard deviation
+\begin{equation}
+\mu = \frac{1}{|\mathcal{B}|}\sum_{j\in\mathcal{B}} x_j, \qquad
+\sigma = \sqrt{\frac{1}{|\mathcal{B}|}\sum_{j\in\mathcal{B}} (x_j-\mu)^2},
+\end{equation}
+and append the personalized feature
+\begin{equation}
+x_i^{(p)} = \frac{x_i - \mu}{\max(\sigma,\;\varepsilon)},
+\end{equation}
+where $\varepsilon$ is a small floor guarding against division by zero. Each physiological feature
+is thus represented \emph{twice}---in absolute units and as a personal deviation---doubling the
+effective feature count to $36$. Crucially, the reference window $\mathcal{B}$ is defined in
+\emph{seconds of signal}, not a fixed count of windows, so that the calibration performed live by the
+deployed system exactly matches the reference used during training, regardless of window step.
+
+\subsection{Model architecture}
+I use gradient-boosted decision trees (a histogram-based gradient boosting
+classifier~\cite{ke2017lightgbm}), a deliberate choice over deep learning. With only $15$ training
+subjects and tabular features, tree ensembles are the appropriate and best-performing tool at this
+data scale; they handle missing values natively (a dropped sensor simply becomes a NaN, requiring
+no imputation); and they remain interpretable. The model has two heads that share the same $36$
+inputs:
+\begin{itemize}[leftmargin=1.4em,itemsep=0.1em]
+  \item \textbf{Head A---graded stress.} A binary classifier (baseline vs.\ stress) wrapped in
+        isotonic probability calibration~\cite{zadrozny2002transforming}, so its output is a genuine
+        probability $p$. The graded index is $\mathrm{index}=\lfloor 100\,p \rceil$, with ordinal
+        bands \emph{calm} ($p<0.45$), \emph{elevated} ($0.45\le p<0.70$), and \emph{high}
+        ($p\ge 0.70$).
+  \item \textbf{Head B---affect.} A four-class classifier
+        (baseline / stress / amusement / meditation) that separates stress arousal from positive
+        arousal, since a raised heart rate during an enjoyable moment is not stress and a single
+        binary model cannot distinguish the two.
+\end{itemize}
+Calibration matters: without it a classifier's raw output is a score, not a probability, and the
+$0$--$100$ index would be arbitrary. Isotonic calibration fits a monotonic mapping from scores to
+empirical probabilities, making the index interpretable.
+
+\subsection{Abstention}
+\label{sec:abstention}
+Before the model is consulted, a quality gate inspects motion and signal coverage. If dynamic wrist
+motion exceeds a threshold, or coverage / pulse-signal quality fall below thresholds, the model is
+\emph{not invoked} and the window is reported as \texttt{motion\_paused} or \texttt{poor\_signal}.
+On abstention the graded index, level, and affect state are all null. This is a designed feature: a
+photoplethysmographic reading during hand movement reflects motion artefact rather than blood
+volume, and refusing to score is strictly preferable to emitting a confident but meaningless number.
+
+\subsection{Evaluation protocol}
+All reported metrics use grouped leave-one-subject-out cross-validation: for each fold one subject
+is entirely withheld, the model is trained on the remainder, and it is scored only on the withheld
+subject. I report balanced accuracy---the mean of per-class recalls---which is robust to class
+imbalance:
+\begin{equation}
+\mathrm{BA} = \tfrac{1}{2}\!\left(\frac{TP}{TP+FN} + \frac{TN}{TN+FP}\right),
+\end{equation}
+compared against a majority-class dummy baseline of $0.5$.
+
+\subsection{Honesty enforcement}
+A regression test fails the build if any user-facing string contains clinical terminology (e.g.\
+``panic,'' ``anxiety,'' ``burnout,'' ``diagnosis,'' ``clinical,'' ``medical''), making over-claiming
+structurally impossible rather than a matter of discipline.
+
+% ===========================================================================
+\section{Datasets}
+
+I used three datasets with strictly separated roles, summarized in Table~\ref{tab:data}.
+
+\begin{table}[t]
+\centering
+\caption{Datasets and their roles. Only WESAD was used for training.}
+\label{tab:data}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{2.5cm} c p{2.0cm} p{6.0cm}}
+\toprule
+\textbf{Dataset} & \textbf{Subjects} & \textbf{Role} & \textbf{Notes} \\
+\midrule
+\rowcolor{rowalt}
+WESAD~\cite{schmidt2018wesad} & 15 & Training & Validated laboratory stress protocol. I used only the
+wrist-worn channels and discarded the cleaner chest sensors deliberately, since the target device
+has no chest strap. $\sim\!919$ labelled windows after quality filtering. \\
+Stress-Predict~\cite{iqbal2022stresspredict} & 35 & Held out & Different people, a different lab
+stress protocol; used to probe generalization, never trained on. \\
+\rowcolor{rowalt}
+Nurse Stress~\cite{hosseini2022nurse} & 15 & Held out & Real hospital shifts with sparse self-report
+labels---the messiest, most naturalistic data; never trained on. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+I trained \emph{only} on WESAD. My own experiments confirmed the literature: naively pooling WESAD
+with Stress-Predict lowered LOSO accuracy from $0.83$ to $0.62$, so I abandoned pooling and retained
+the other two datasets strictly as external validation. WESAD's labels derive from a validated
+protocol, providing trustworthy ground truth; no equivalent labelled dataset exists for conditions
+such as burnout, which is one reason the system does not attempt to predict them.
+
+% ===========================================================================
+\section{Inputs}
+\label{sec:inputs}
+
+Each $60$-second window yields \kpi{36 model inputs}: $19$ absolute features plus $17$ personalized
+counterparts. The two quality/coverage features are not personalized, as they describe the recording
+rather than the person. Table~\ref{tab:features} enumerates the absolute features by channel.
+
+\begin{table}[t]
+\centering
+\caption{The 19 absolute features per window, by sensing channel. Each physiological feature (all
+except \texttt{ppg\_quality} and \texttt{valid\_fraction}) additionally contributes a personalized
+$(\cdot)^{(p)}$ counterpart, for 36 inputs total.}
+\label{tab:features}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{3.0cm} c p{8.0cm}}
+\toprule
+\textbf{Channel} & \textbf{\#} & \textbf{Features} \\
+\midrule
+\rowcolor{rowalt}
+Pulse / PPG & 7 & mean heart rate; two HRV measures (SDNN-like, RMSSD); pulse-signal quality; LF
+power; HF power; LF/HF ratio \\
+Skin conductance / EDA & 7 & tonic level; slope; count and mean amplitude of skin-conductance
+responses; tonic mean; tonic slope; phasic mean (cvxEDA) \\
+\rowcolor{rowalt}
+Skin temperature & 2 & mean; trend (negative sign in the arousal direction---stress \emph{cools} the
+skin) \\
+Motion / accelerometry & 2 & dynamic motion energy (RMS); 95th percentile (also the abstention
+trigger) \\
+\rowcolor{rowalt}
+Coverage & 1 & fraction of the window with usable samples \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Two properties of this input design are worth emphasizing. First, EDA contributes $7$ of the $19$
+features---tied with pulse for the largest block---and is the purest arousal signal, yet is the
+channel most often absent on low-cost hardware. Second, the thermal features carry a \emph{negative}
+sign in the arousal direction: because stress cools the skin, a falling temperature \emph{increases}
+the modelled arousal, a subtlety that a naive ``higher is worse'' design would get backwards.
+
+% ===========================================================================
+\section{Results}
+
+\subsection{Accuracy}
+Table~\ref{tab:acc} reports the final model under grouped LOSO on WESAD.
+
+\begin{table}[t]
+\centering
+\caption{Final model performance under grouped leave-one-subject-out on WESAD.}
+\label{tab:acc}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{c p{5.2cm} c c}
+\toprule
+\textbf{Head} & \textbf{Task} & \textbf{Balanced acc.} & \textbf{Chance} \\
+\midrule
+\rowcolor{rowalt}
+A & Graded stress (binary) & \kpi{0.919} & 0.500 \\
+B & Affect (4-class) & \kpi{0.616} & 0.250 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Head~A additionally attains a macro-F1 of $0.918$. For context, the strongest comparable wrist-only
+LOSO result in the literature is $0.874$~\cite{siirtola2019}; the system exceeds it.
+
+\subsection{Ablation: how the accuracy was reached}
+Table~\ref{tab:ablation} traces the model's development. Every row is measured identically (WESAD
+LOSO), so the steps are directly comparable.
+
+\begin{table}[t]
+\centering
+\caption{Development of Head~A. Every row is grouped LOSO on WESAD.}
+\label{tab:ablation}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{p{9.5cm} c}
+\toprule
+\textbf{Configuration} & \textbf{Balanced acc.} \\
+\midrule
+\rowcolor{rowalt}
+Baseline: 13 features, logistic regression & 0.831 \\
+Naive pooling of WESAD + Stress-Predict \emph{(rejected)} & 0.617 \\
+\rowcolor{rowalt}
+Drop pooling---train on WESAD only & 0.831 \\
+$+$ frequency-domain HRV and cvxEDA features & 0.880 \\
+\rowcolor{rowalt}
+$+$ per-subject baseline personalization & \kpi{0.919} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The two gains that survived scrutiny were the richer feature set ($+0.049$) and personalization
+($+0.039$). The rejected pooling configuration is retained in the table because it is instructive:
+adding data \emph{lowered} accuracy, exactly as the literature predicts for cross-protocol pooling
+without domain adaptation.
+
+\subsection{Honest limits}
+I report three limitations directly inside the deployed interface, not merely here.
+
+\begin{itemize}[leftmargin=1.4em,itemsep=0.15em]
+  \item \textbf{The error bar is non-trivial.} With only $15$ subjects, the standard error on the
+        balanced accuracy is $\pm 0.036$.
+  \item \textbf{The model is good on average, not uniformly.} Per-subject balanced accuracy ranges
+        from $0.50$ (chance) to $1.00$. I therefore present the index as a personal \emph{trend}
+        over time, never as a precise instantaneous measurement.
+  \item \textbf{$0.919$ is the ceiling for this data.} After reaching it, I ran a systematic tuning
+        sweep over window size, prediction smoothing, seed ensembling, calibration length, and
+        boosting hyperparameters. Nothing improved on $0.919$ with statistical significance. In the
+        process I caught two errors in my own work---a bug in which a calibration parameter silently
+        changed with window size, and a case of selecting the best configuration on the same test
+        folds used to report it---and I documented both as a formal negative result. The binding
+        constraint is the dataset size, not the model.
+\end{itemize}
+
+\subsection{System results}
+The full automated test suite (over $300$ tests) passes, as does an end-to-end software acceptance
+gate. The backend genuinely streams: I verified $18$ windows arriving one at a time over a live
+WebSocket connection, correctly tracing the arc from calm through high stress, then
+\texttt{motion\_paused}, then \texttt{poor\_signal}. The interface was verified in a real browser: a
+first-time user is presented with a single clear action, watches the reading accumulate live, and
+sees the model's abstention states and error bar rendered honestly rather than hidden.
+
+% ===========================================================================
+\section{Discussion and Limitations}
+
+The results support a clear thesis: at this data scale, \emph{how} the signal is represented matters
+more than model sophistication. Personalization and a physiologically motivated feature set together
+account for the entire improvement from $0.831$ to $0.919$, while an extensive hyperparameter search
+yielded nothing. This is a useful corrective to the reflex of reaching for larger models; with $15$
+subjects, the path to higher accuracy runs through more subjects and better labels, not deeper
+networks.
+
+The most consequential limitation is dataset size. Fifteen training subjects impose a $\pm 0.036$
+standard error and a wide per-subject spread, and no amount of modelling can escape it. A second
+limitation is that Head~B's affect classes derive from a single laboratory protocol, so its
+distinction between stress and positive arousal should be read as suggestive rather than definitive.
+A third is scope: the system measures \emph{physiological arousal relative to baseline}, which is
+what the sensors can support, and deliberately makes no claim about specific affective disorders,
+because the peripheral signature of anger, fear, and excitement is largely shared and cannot be
+disambiguated from these channels alone.
+
+% ===========================================================================
+\section{Hardware and Deployment}
+
+The intended device integrates a MAX30102 optical pulse sensor, a BNO inertial measurement unit
+(motion), and an MLX90614 infrared skin-temperature sensor, covering three of the four channels. It
+currently \emph{lacks a skin-conductance (EDA) sensor}, which accounts for $7$ of the $19$ features
+and---as established above---is the cleanest arousal signal. Adding that sensor is the next hardware
+step, and I am quantifying its value by retraining the model without EDA on the same data, so the
+decision is driven by a measured accuracy cost rather than intuition.
+
+Because the pipeline is built around a fixed raw-event contract, hardware only ever replaces the
+\emph{data source}: features, model, explanations, and interface are identical whether data arrive
+from a recording, a synthetic generator, or a live board. For demonstration, a held-out recording is
+streamed through the exact path the hardware will use, so that the pipeline validated in software is
+the pipeline the device runs.
+
+% ===========================================================================
+\section{Conclusion and Future Work}
+
+I set out to convert low-cost physiological signals into an honest, personalized, real-time stress
+estimate. The system attains a balanced accuracy of $0.919$ under the strictest available
+evaluation---above the published wrist-only benchmark---built on a personalization method that adapts
+to each individual. Equally important, it is candid about its limits: it abstains when it cannot see,
+it reports its own uncertainty, and it is structurally barred from making clinical claims. The
+clearest avenues for future work are (i) adding the missing skin-conductance sensor and measuring its
+contribution, (ii) re-scoring the two held-out datasets against the current model to quantify
+real-world generalization, and (iii) enlarging the training population, which the evidence indicates
+is the only route past the current accuracy ceiling.
+
+% ===========================================================================
+\begin{thebibliography}{99}
+\footnotesize
+
+\bibitem{schmidt2018wesad}
+P.~Schmidt, A.~Reiss, R.~Duerichen, C.~Marberger, and K.~Van Laerhoven,
+``Introducing WESAD, a multimodal dataset for wearable stress and affect detection,''
+in \emph{Proc.\ 20th ACM Int.\ Conf.\ Multimodal Interaction (ICMI)}, 2018, pp.\ 400--408.
+
+\bibitem{siirtola2019}
+P.~Siirtola,
+``Continuous stress detection using the sensors of commercial smartwatch,''
+in \emph{Adjunct Proc.\ ACM Int.\ Joint Conf.\ Pervasive and Ubiquitous Computing (UbiComp/ISWC)},
+2019, pp.\ 1198--1201.
+
+\bibitem{greco2016cvxeda}
+A.~Greco, G.~Valenza, A.~Lanata, E.~P.~Scilingo, and L.~Citi,
+``cvxEDA: A convex optimization approach to electrodermal activity processing,''
+\emph{IEEE Trans.\ Biomedical Engineering}, vol.\ 63, no.\ 4, pp.\ 797--804, 2016.
+
+\bibitem{makowski2021neurokit}
+D.~Makowski \emph{et al.},
+``NeuroKit2: A Python toolbox for neurophysiological signal processing,''
+\emph{Behavior Research Methods}, vol.\ 53, no.\ 4, pp.\ 1689--1696, 2021.
+
+\bibitem{ke2017lightgbm}
+G.~Ke \emph{et al.},
+``LightGBM: A highly efficient gradient boosting decision tree,''
+in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2017, pp.\ 3146--3154.
+
+\bibitem{zadrozny2002transforming}
+B.~Zadrozny and C.~Elkan,
+``Transforming classifier scores into accurate multiclass probability estimates,''
+in \emph{Proc.\ 8th ACM SIGKDD Int.\ Conf.\ Knowledge Discovery and Data Mining}, 2002,
+pp.\ 694--699.
+
+\bibitem{iqbal2022stresspredict}
+T.~Iqbal \emph{et al.},
+``Stress-Predict dataset: A wearable physiological signals dataset for stress detection,''
+\emph{Data in Brief / Sensors}, 2022.
+
+\bibitem{hosseini2022nurse}
+S.~Hosseini \emph{et al.},
+``A multimodal sensor dataset for continuous stress detection of nurses in a hospital,''
+\emph{Scientific Data}, vol.\ 9, no.\ 255, 2022.
+
+\end{thebibliography}
+
+\end{document}
